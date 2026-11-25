@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useTransition } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { AuthStorage, UserProfile } from '@/lib/auth';
 import { api } from '@/lib/api';
@@ -27,68 +27,90 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const checkAuth = async () => {
+  const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname?.startsWith(route));
+
+  useEffect(() => {
+    setMounted(true);
     const token = AuthStorage.getToken();
     const storedUser = AuthStorage.getUser();
-
-    const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname?.startsWith(route));
 
     if (!token) {
       setUser(null);
       setLoading(false);
       if (!isPublicRoute) {
-        router.replace('/login');
+        window.location.href = '/login';
       }
       return;
     }
 
-    // Token exists, initialize user immediately from storage
+    // Immediately trust stored profile while validating in background
     if (storedUser) {
       setUser(storedUser);
-    }
-
-    // Validate token with backend /auth/me
-    try {
-      const validated = await api.getMe();
-      setUser(validated);
-      AuthStorage.setAuth(token, validated);
-      if (isPublicRoute) {
-        router.replace('/');
-      }
-    } catch (err) {
-      // Token expired or invalid
-      AuthStorage.clear();
-      setUser(null);
-      if (!isPublicRoute) {
-        router.replace('/login');
-      }
-    } finally {
       setLoading(false);
+      if (isPublicRoute) {
+        window.location.href = '/';
+        return;
+      }
     }
-  };
 
-  useEffect(() => {
-    checkAuth();
-  }, [pathname]);
+    // Verify token with backend
+    api.getMe()
+      .then((validated) => {
+        setUser(validated);
+        AuthStorage.setAuth(token, validated);
+        setLoading(false);
+        if (isPublicRoute) {
+          window.location.href = '/';
+        }
+      })
+      .catch(() => {
+        // Token expired or invalid
+        AuthStorage.clear();
+        setUser(null);
+        setLoading(false);
+        if (!isPublicRoute) {
+          window.location.href = '/login';
+        }
+      });
+  }, [pathname, isPublicRoute]);
 
   const logout = () => {
     AuthStorage.clear();
     setUser(null);
-    router.replace('/login');
+    window.location.href = '/login';
   };
 
   const refreshUser = async () => {
-    await checkAuth();
+    const token = AuthStorage.getToken();
+    if (!token) {
+      setUser(null);
+      return;
+    }
+    try {
+      const validated = await api.getMe();
+      setUser(validated);
+      AuthStorage.setAuth(token, validated);
+    } catch {
+      logout();
+    }
   };
 
-  const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname?.startsWith(route));
-
-  // If user is already on a public route (like /login or /signup) and has no token, don't show full-screen loader
-  if (loading && !isPublicRoute) {
+  // SSR initial render or public routes: render instantly without full-screen blocker
+  if (!mounted || isPublicRoute) {
     return (
-      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-white">
+      <AuthContext.Provider value={{ user, loading, logout, refreshUser }}>
+        {children}
+      </AuthContext.Provider>
+    );
+  }
+
+  // If loading on a protected route: show clean spinner
+  if (loading && !user) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-white">
         <div className="flex flex-col items-center space-y-4">
           <div className="relative flex items-center justify-center">
             <div className="w-14 h-14 rounded-2xl border-4 border-indigo-500/30 border-t-indigo-500 animate-spin" />
@@ -103,8 +125,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // If not logged in and on a protected route, block rendering until redirected
-  if (!user && !isPublicRoute) {
+  // If not logged in on a protected route, hold rendering while redirecting
+  if (!user) {
     return null;
   }
 
