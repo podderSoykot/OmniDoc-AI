@@ -79,10 +79,15 @@ class JobManager:
             val_report = DocumentValidator.validate(extracted_schema, current_doc_id=document_id, db=db)
 
             # Step 4: Persist to DB
+            struct_payload = extracted_schema.model_dump()
+            if ingestion_res.get("sheets"):
+                struct_payload["sheets"] = ingestion_res["sheets"]
+                struct_payload["is_spreadsheet"] = True
+
             extraction_rec = DocumentExtraction(
                 document_id=document_id,
                 raw_text=raw_text,
-                structured_data=extracted_schema.model_dump(),
+                structured_data=struct_payload,
                 confidence_scores=confidences,
                 processing_time_ms=latency
             )

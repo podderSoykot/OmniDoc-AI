@@ -42,6 +42,8 @@ export interface DocumentItem {
 export interface DocumentDetail extends DocumentItem {
   error_message?: string | null;
   structured_data?: StructuredInvoiceData | null;
+  sheets?: Record<string, Array<Record<string, any>>> | null;
+  is_spreadsheet?: boolean;
   confidence_scores?: Record<string, number> | null;
   validation?: ValidationReport | null;
   raw_text?: string | null;

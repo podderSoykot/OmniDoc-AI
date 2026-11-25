@@ -8,7 +8,9 @@ interface DocumentPreviewProps {
 }
 
 export default function DocumentPreview({ documentId, fileType, filename }: DocumentPreviewProps) {
-  const fileUrl = `http://localhost:8000/files/${documentId}.${fileType === 'excel' ? 'xlsx' : fileType}`;
+  const downloadUrl = `http://localhost:8000/api/v1/documents/${documentId}/download`;
+  const fileExt = filename.split('.').pop() || '';
+  const fileUrl = `http://localhost:8000/files/${documentId}.${fileExt}`;
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200/80 p-4 h-[780px] flex flex-col shadow-sm">
@@ -27,16 +29,16 @@ export default function DocumentPreview({ documentId, fileType, filename }: Docu
 
         <div className="flex items-center gap-1.5">
           <a
-            href={fileUrl}
+            href={downloadUrl}
             target="_blank"
             rel="noreferrer"
             className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-50 transition"
-            title="Open in new window"
+            title="Open / Download file"
           >
             <ExternalLink className="w-4 h-4" />
           </a>
           <a
-            href={fileUrl}
+            href={downloadUrl}
             download={filename}
             className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-50 transition"
             title="Download original file"

@@ -3,9 +3,11 @@ import shutil
 from pathlib import Path
 from typing import List, Optional
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, BackgroundTasks, Query
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.logging_config import logger
 from app.models.document import Document, DocumentExtraction, ValidationResult, AuditLog
 from app.models.schemas import (
     DocumentDetailResponse, DocumentListItemResponse,
@@ -104,6 +106,29 @@ def get_document_details(document_id: str, db: Session = Depends(get_db)):
             warnings=doc.validation.warnings or []
         )
 
+    # Resolve spreadsheet sheets if applicable
+    is_spreadsheet = doc.file_type in ("excel", "csv")
+    sheets_data = None
+    if doc.extraction and doc.extraction.structured_data:
+        sheets_data = doc.extraction.structured_data.get("sheets")
+        if doc.extraction.structured_data.get("is_spreadsheet"):
+            is_spreadsheet = True
+
+    # If spreadsheet has not persisted sheets yet, parse dynamically from disk
+    if is_spreadsheet and not sheets_data and Path(doc.file_path).exists():
+        try:
+            from app.services.ingestion.excel_parser import ExcelParser
+            parsed = ExcelParser.parse_spreadsheet(Path(doc.file_path))
+            sheets_data = parsed.get("sheets")
+            if doc.extraction:
+                updated_struct = dict(doc.extraction.structured_data or {})
+                updated_struct["sheets"] = sheets_data
+                updated_struct["is_spreadsheet"] = True
+                doc.extraction.structured_data = updated_struct
+                db.commit()
+        except Exception as e:
+            logger.error(f"Error parsing spreadsheet sheets for {document_id}: {e}")
+
     return DocumentDetailResponse(
         id=doc.id,
         filename=doc.filename,
@@ -114,9 +139,22 @@ def get_document_details(document_id: str, db: Session = Depends(get_db)):
         error_message=doc.error_message,
         created_at=doc.created_at,
         structured_data=doc.extraction.structured_data if doc.extraction else None,
+        sheets=sheets_data,
+        is_spreadsheet=is_spreadsheet,
         confidence_scores=doc.extraction.confidence_scores if doc.extraction else None,
         validation=val_report,
         raw_text=doc.extraction.raw_text if doc.extraction else None
+    )
+
+@router.get("/{document_id}/download")
+def download_document(document_id: str, db: Session = Depends(get_db)):
+    doc = db.query(Document).filter(Document.id == document_id).first()
+    if not doc or not Path(doc.file_path).exists():
+        raise HTTPException(status_code=404, detail="Document file not found on disk")
+    return FileResponse(
+        path=doc.file_path,
+        filename=doc.filename,
+        media_type="application/octet-stream"
     )
 
 @router.put("/{document_id}/corrections")

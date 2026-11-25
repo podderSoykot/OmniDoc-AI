@@ -36,6 +36,8 @@ class DocumentDetailResponse(BaseModel):
     error_message: Optional[str] = None
     created_at: datetime
     structured_data: Optional[Dict[str, Any]] = None
+    sheets: Optional[Dict[str, List[Dict[str, Any]]]] = None
+    is_spreadsheet: Optional[bool] = None
     confidence_scores: Optional[Dict[str, float]] = None
     validation: Optional[ValidationReport] = None
     raw_text: Optional[str] = None
