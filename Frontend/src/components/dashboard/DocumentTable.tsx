@@ -13,7 +13,8 @@ import {
   Image as ImageIcon,
   Trash2,
   RefreshCw,
-  Edit3
+  Edit3,
+  Eye
 } from 'lucide-react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
@@ -201,35 +202,37 @@ export default function DocumentTable({ documents, onDelete }: DocumentTableProp
                   </td>
 
                   <td className="px-6 py-4 text-right">
-                    <div className="inline-flex items-center gap-1.5">
+                    <div className="inline-flex items-center gap-1">
+                      {/* View / Inspect Document Icon */}
                       <Link
                         href={`/documents/${doc.id}`}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition border border-transparent hover:border-indigo-100"
-                        title="Edit extracted fields & values"
+                        className="p-2 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition border border-transparent hover:border-indigo-100"
+                        title="View & Inspect Document"
                       >
-                        <Edit3 className="w-3.5 h-3.5" />
+                        <Eye className="w-4 h-4" />
                       </Link>
 
+                      {/* Edit Fields Icon */}
                       <Link
                         href={`/documents/${doc.id}`}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-white bg-indigo-50 hover:bg-indigo-600 px-3 py-1.5 rounded-lg transition-all duration-150"
-                        title="Review and inspect document"
+                        className="p-2 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition border border-transparent hover:border-amber-100"
+                        title="Edit Extracted Fields & Line Items"
                       >
-                        <span>Review</span>
-                        <ArrowUpRight className="w-3.5 h-3.5" />
+                        <Edit3 className="w-4 h-4" />
                       </Link>
 
+                      {/* Delete Document Icon */}
                       {onDelete && (
                         <button
                           onClick={(e) => requestDelete(doc.id, doc.filename, e)}
                           disabled={deletingId === doc.id}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition border border-transparent hover:border-rose-100 disabled:opacity-40"
-                          title="Delete document"
+                          className="p-2 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition border border-transparent hover:border-rose-100 disabled:opacity-40"
+                          title="Delete Document"
                         >
                           {deletingId === doc.id ? (
-                            <RefreshCw className="w-3.5 h-3.5 animate-spin text-rose-500" />
+                            <RefreshCw className="w-4 h-4 animate-spin text-rose-500" />
                           ) : (
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-4 h-4" />
                           )}
                         </button>
                       )}
