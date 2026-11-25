@@ -3,8 +3,11 @@
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI%200.115-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com)
 [![Next.js](https://img.shields.io/badge/Frontend-Next.js%2014-000000?style=flat-square&logo=next.js)](https://nextjs.org)
 [![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL%2016-336791?style=flat-square&logo=postgresql)](https://www.postgresql.org)
-[![Python Tests](https://img.shields.io/badge/Tests-11%20Passed%20(100%25)-success?style=flat-square&logo=pytest)](https://docs.pytest.org)
+[![Tests](https://img.shields.io/badge/Tests-11%20Passed%20(100%25)-success?style=flat-square&logo=pytest)](https://docs.pytest.org)
+[![User Guide](https://img.shields.io/badge/Docs-App%20User%20Guide-indigo?style=flat-square)](APP_USER_GUIDE.md)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
+
+> **Visual User Guide**: For an illustrated walkthrough of all screens with screenshots, see [APP_USER_GUIDE.md](APP_USER_GUIDE.md).
 
 OmniDoc-AI is an end-to-end, high-performance financial document intelligence platform engineered to process thousands of multi-format business documents daily (PDFs up to 1,000+ pages, scanned images, Excel spreadsheets, and CSVs). It delivers zero-hallucination AI field extraction, automated mathematical and business rule auditing, cross-document reconciliation (PDF vs PDF & PDF vs Excel), multi-tenant session isolation, and an interactive Next.js dashboard with executive financial visualizers.
 
