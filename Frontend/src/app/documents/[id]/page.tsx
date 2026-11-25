@@ -10,6 +10,7 @@ import ExtractedForm from '@/components/viewer/ExtractedForm';
 import ValidationBadges from '@/components/viewer/ValidationBadges';
 import SpreadsheetViewer from '@/components/viewer/SpreadsheetViewer';
 import SpreadsheetAnalytics from '@/components/viewer/SpreadsheetAnalytics';
+import FinancialVisualizer from '@/components/viewer/FinancialVisualizer';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import AuditTrailModal from '@/components/viewer/AuditTrailModal';
 import { 
@@ -24,7 +25,8 @@ import {
   Sparkles,
   ShieldCheck,
   Trash2,
-  History
+  History,
+  BarChart3
 } from 'lucide-react';
 
 export default function DocumentDetailPage() {
@@ -33,7 +35,7 @@ export default function DocumentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showRawText, setShowRawText] = useState(false);
-  const [spreadsheetViewTab, setSpreadsheetViewTab] = useState<'grid' | 'heuristics'>('grid');
+  const [spreadsheetViewTab, setSpreadsheetViewTab] = useState<'visualize' | 'grid' | 'heuristics'>('visualize');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -246,6 +248,21 @@ export default function DocumentDetailPage() {
           <div className="flex items-center justify-between gap-4 border-b border-slate-200 pb-2">
             <div className="flex items-center gap-2">
               <button
+                onClick={() => setSpreadsheetViewTab('visualize')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
+                  spreadsheetViewTab === 'visualize'
+                    ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/20'
+                    : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                }`}
+              >
+                <BarChart3 className="w-3.5 h-3.5" />
+                <span>Financial Visualizations</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/20 text-white font-bold">
+                  Charts
+                </span>
+              </button>
+
+              <button
                 onClick={() => setSpreadsheetViewTab('grid')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition ${
                   spreadsheetViewTab === 'grid'
@@ -281,7 +298,14 @@ export default function DocumentDetailPage() {
             </div>
           </div>
 
-          {spreadsheetViewTab === 'grid' ? (
+          {spreadsheetViewTab === 'visualize' ? (
+            /* Dedicated Interactive Financial Visualizer */
+            <FinancialVisualizer
+              sheets={doc.sheets || {}}
+              sheetSummaries={(doc.structured_data as any)?.sheet_summaries || []}
+              primaryMetrics={(doc.structured_data as any)?.primary_metrics || {}}
+            />
+          ) : spreadsheetViewTab === 'grid' ? (
             /* Dedicated Spreadsheet Multi-Sheet View */
             <SpreadsheetViewer
               sheets={doc.sheets || {}}
