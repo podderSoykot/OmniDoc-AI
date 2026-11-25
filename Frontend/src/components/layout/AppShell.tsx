@@ -12,9 +12,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <AuthGuard>
       {isAuthPage ? (
-        <main className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center">
           {children}
-        </main>
+        </div>
       ) : (
         <div className="flex min-h-screen flex-col lg:flex-row">
           <Sidebar />
