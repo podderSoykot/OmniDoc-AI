@@ -6,7 +6,7 @@ from app.models.document import Document, CrossVerification, User
 from app.models.schemas import CrossVerifyRequest, CrossVerifyResponse
 from app.services.cross_verification.verifier import CrossVerificationOrchestrator
 from app.services.ingestion.excel_parser import ExcelParser
-from app.core.auth import get_current_user_optional
+from app.core.auth import get_current_user
 
 router = APIRouter(prefix="/verification", tags=["Cross Verification"])
 
@@ -14,13 +14,13 @@ router = APIRouter(prefix="/verification", tags=["Cross Verification"])
 def run_cross_verification(
     req: CrossVerifyRequest, 
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: User = Depends(get_current_user)
 ):
-    src_doc = db.query(Document).filter(Document.id == req.source_document_id).first()
-    tgt_doc = db.query(Document).filter(Document.id == req.target_document_id).first()
+    src_doc = db.query(Document).filter(Document.id == req.source_document_id, Document.user_id == current_user.id).first()
+    tgt_doc = db.query(Document).filter(Document.id == req.target_document_id, Document.user_id == current_user.id).first()
 
     if not src_doc or not tgt_doc:
-        raise HTTPException(status_code=404, detail="One or both documents not found")
+        raise HTTPException(status_code=404, detail="One or both documents not found or access denied")
 
     src_data = src_doc.extraction.structured_data if src_doc.extraction else {}
     tgt_data = tgt_doc.extraction.structured_data if tgt_doc.extraction else {}
@@ -67,11 +67,9 @@ def run_cross_verification(
 def get_verification_history(
     limit: int = 20, 
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: User = Depends(get_current_user)
 ):
-    query = db.query(CrossVerification)
-    if current_user:
-        query = query.filter(CrossVerification.user_id == current_user.id)
+    query = db.query(CrossVerification).filter(CrossVerification.user_id == current_user.id)
 
     records = (
         query

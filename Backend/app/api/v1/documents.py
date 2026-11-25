@@ -16,7 +16,7 @@ from app.models.schemas import (
 )
 from app.services.queue.job_manager import JobManager
 from app.services.validation.validator import DocumentValidator
-from app.core.auth import get_current_user_optional
+from app.core.auth import get_current_user
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
@@ -25,12 +25,12 @@ async def upload_documents(
     background_tasks: BackgroundTasks,
     files: List[UploadFile] = File(...),
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: User = Depends(get_current_user)
 ):
     """
     Accepts multiple documents (PDF, JPG, PNG, TIFF, XLSX, XLS, CSV).
     Saves files and queues background processing jobs.
-    Attaches user_id for multi-tenant isolation if authenticated.
+    Strictly isolated per authenticated user.
     """
     enqueued_jobs = []
 
@@ -47,7 +47,7 @@ async def upload_documents(
         file_size = saved_path.stat().st_size
         new_doc = Document(
             id=doc_id,
-            user_id=current_user.id if current_user else None,
+            user_id=current_user.id,
             filename=file.filename,
             file_path=str(saved_path),
             file_type="unknown",
@@ -74,11 +74,9 @@ def list_documents(
     limit: int = 50,
     offset: int = 0,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: User = Depends(get_current_user)
 ):
-    query = db.query(Document)
-    if current_user:
-        query = query.filter(Document.user_id == current_user.id)
+    query = db.query(Document).filter(Document.user_id == current_user.id)
     
     docs = query.order_by(Document.created_at.desc()).limit(limit).offset(offset).all()
     results = []
@@ -132,10 +130,14 @@ def list_documents(
     return results
 
 @router.get("/{document_id}", response_model=DocumentDetailResponse)
-def get_document_details(document_id: str, db: Session = Depends(get_db)):
-    doc = db.query(Document).filter(Document.id == document_id).first()
+def get_document_details(
+    document_id: str, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    doc = db.query(Document).filter(Document.id == document_id, Document.user_id == current_user.id).first()
     if not doc:
-        raise HTTPException(status_code=404, detail="Document not found")
+        raise HTTPException(status_code=404, detail="Document not found or access denied")
 
     val_report = None
     if doc.validation:
@@ -219,10 +221,14 @@ def get_document_details(document_id: str, db: Session = Depends(get_db)):
     )
 
 @router.get("/{document_id}/download")
-def download_document(document_id: str, db: Session = Depends(get_db)):
-    doc = db.query(Document).filter(Document.id == document_id).first()
+def download_document(
+    document_id: str, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    doc = db.query(Document).filter(Document.id == document_id, Document.user_id == current_user.id).first()
     if not doc or not Path(doc.file_path).exists():
-        raise HTTPException(status_code=404, detail="Document file not found on disk")
+        raise HTTPException(status_code=404, detail="Document file not found on disk or access denied")
     return FileResponse(
         path=doc.file_path,
         filename=doc.filename,
@@ -233,9 +239,10 @@ def download_document(document_id: str, db: Session = Depends(get_db)):
 def update_manual_correction(
     document_id: str,
     correction: ManualCorrectionRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
-    doc = db.query(Document).filter(Document.id == document_id).first()
+    doc = db.query(Document).filter(Document.id == document_id, Document.user_id == current_user.id).first()
     if not doc or not doc.extraction:
         raise HTTPException(status_code=404, detail="Document or extraction record not found")
 
@@ -251,7 +258,7 @@ def update_manual_correction(
                 field_name=key,
                 old_value=str(old_val),
                 new_value=str(new_val),
-                modified_by=correction.modified_by
+                modified_by=correction.modified_by or current_user.email
             )
             db.add(audit)
 
@@ -273,10 +280,14 @@ def update_manual_correction(
     return {"message": "Document corrected and re-validated successfully", "validation": val_report.model_dump()}
 
 @router.get("/{document_id}/audit-logs")
-def get_document_audit_logs(document_id: str, db: Session = Depends(get_db)):
-    doc = db.query(Document).filter(Document.id == document_id).first()
+def get_document_audit_logs(
+    document_id: str, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    doc = db.query(Document).filter(Document.id == document_id, Document.user_id == current_user.id).first()
     if not doc:
-        raise HTTPException(status_code=404, detail="Document not found")
+        raise HTTPException(status_code=404, detail="Document not found or access denied")
     
     logs = (
         db.query(AuditLog)
@@ -301,14 +312,18 @@ class BulkDeleteRequest(BaseModel):
     document_ids: List[str]
 
 @router.post("/bulk-delete")
-def bulk_delete_documents(payload: BulkDeleteRequest, db: Session = Depends(get_db)):
+def bulk_delete_documents(
+    payload: BulkDeleteRequest, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     doc_ids = payload.document_ids
     if not doc_ids:
         return {"deleted_count": 0}
 
     deleted_count = 0
     for doc_id in doc_ids:
-        doc = db.query(Document).filter(Document.id == doc_id).first()
+        doc = db.query(Document).filter(Document.id == doc_id, Document.user_id == current_user.id).first()
         if doc:
             try:
                 fpath = Path(doc.file_path)
@@ -329,10 +344,14 @@ def bulk_delete_documents(payload: BulkDeleteRequest, db: Session = Depends(get_
     return {"deleted_count": deleted_count, "document_ids": doc_ids}
 
 @router.delete("/{document_id}")
-def delete_document(document_id: str, db: Session = Depends(get_db)):
-    doc = db.query(Document).filter(Document.id == document_id).first()
+def delete_document(
+    document_id: str, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    doc = db.query(Document).filter(Document.id == document_id, Document.user_id == current_user.id).first()
     if not doc:
-        raise HTTPException(status_code=404, detail="Document not found")
+        raise HTTPException(status_code=404, detail="Document not found or access denied")
 
     # Remove physical file on disk if exists
     try:
