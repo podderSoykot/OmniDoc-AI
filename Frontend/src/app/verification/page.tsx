@@ -118,36 +118,79 @@ function VerificationContent() {
         <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
           Cross-Document Verification
         </h1>
-        <p className="text-xs sm:text-sm text-slate-500 max-w-lg mx-auto">
-          Perform automated pairwise reconciliation: <strong>PDF vs PDF</strong> (PO vs Invoice) or <strong>PDF vs Excel</strong> (Invoice vs General Ledger).
+        <p className="text-xs sm:text-sm text-slate-500 max-w-xl mx-auto">
+          Reconcile two documents to identify financial discrepancies, price gouging, tax variations, or missing ledger entries.
         </p>
       </div>
 
-      {/* Quick Match Presets */}
-      <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
-          <Sparkles className="w-4 h-4 text-indigo-500" />
-          <span>Quick Benchmark Presets:</span>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={() => applyPreset('valid_invoice', 'matching_po')}
-            className="text-[11px] font-bold px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition"
-          >
-            PDF ↔ PDF: Invoice vs PO (100% Match)
-          </button>
-          <button
-            onClick={() => applyPreset('valid_invoice', 'corporate_general_ledger')}
-            className="text-[11px] font-bold px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition"
-          >
-            PDF ↔ Excel: Invoice vs General Ledger
-          </button>
-          <button
-            onClick={() => applyPreset('math_mismatch', 'matching_po')}
-            className="text-[11px] font-bold px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 text-slate-700 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 transition"
-          >
-            Discrepancy Test (Mismatch Audit)
-          </button>
+      {/* Clear Verification Methodology Selector */}
+      <div className="bg-slate-100/90 p-1.5 rounded-2xl grid grid-cols-1 md:grid-cols-2 gap-1.5 max-w-2xl mx-auto">
+        <button
+          type="button"
+          onClick={() => applyPreset('valid_invoice', 'matching_po')}
+          className={`flex items-center gap-3 p-3 rounded-xl transition text-left ${
+            !sourceDoc?.file_type?.includes('excel') && !targetDoc?.file_type?.includes('excel')
+              ? 'bg-white shadow-xs text-indigo-900 border border-slate-200/80 font-bold'
+              : 'text-slate-600 hover:bg-white/60 font-medium'
+          }`}
+        >
+          <div className="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+            <FileText className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-xs font-bold text-slate-900">Method 1: PDF ↔ PDF (3-Way Match)</p>
+            <p className="text-[11px] text-slate-500 font-normal">Invoice vs Purchase Order / Receipt</p>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => applyPreset('valid_invoice', 'corporate_general_ledger')}
+          className={`flex items-center gap-3 p-3 rounded-xl transition text-left ${
+            sourceDoc?.file_type?.includes('excel') || targetDoc?.file_type?.includes('excel')
+              ? 'bg-white shadow-xs text-emerald-900 border border-slate-200/80 font-bold'
+              : 'text-slate-600 hover:bg-white/60 font-medium'
+          }`}
+        >
+          <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <FileSpreadsheet className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-xs font-bold text-slate-900">Method 2: PDF ↔ Excel (Ledger Audit)</p>
+            <p className="text-[11px] text-slate-500 font-normal">Invoice vs Multi-Sheet General Ledger</p>
+          </div>
+        </button>
+      </div>
+
+      {/* Active Method Explanation Box */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs">
+        <div className="flex items-start gap-4">
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0 text-indigo-600">
+            <Layers className="w-5 h-5" />
+          </div>
+          <div className="space-y-1">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+              {sourceDoc?.file_type?.includes('excel') || targetDoc?.file_type?.includes('excel')
+                ? 'Methodology: Multi-Sheet Spreadsheet Ledger Cross-Audit'
+                : 'Methodology: Automated 3-Way Financial Match (PDF vs PDF)'}
+            </h4>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              {sourceDoc?.file_type?.includes('excel') || targetDoc?.file_type?.includes('excel')
+                ? 'Scans across all worksheets in the Excel ledger. It matches transaction identifiers, vendor names, and monetary values with tolerance margins, verifying whether the invoice has been legitimately recorded or exhibits price discrepancies.'
+                : 'Directly reconciles line items, quantities, unit prices, supplier identity, subtotal, and total tax between Invoice and Purchase Order/Receipt to flag fraudulent or modified billings.'}
+            </p>
+            <div className="pt-2 flex items-center gap-4 text-[11px] font-semibold text-slate-500">
+              <span className="flex items-center gap-1 text-emerald-600">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Numeric Tolerance: ±$0.05
+              </span>
+              <span className="flex items-center gap-1 text-indigo-600">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Fuzzy String Similarity: ≥70%
+              </span>
+              <span className="flex items-center gap-1 text-violet-600">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Bidirectional Reconciler
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 

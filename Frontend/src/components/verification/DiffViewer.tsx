@@ -74,6 +74,45 @@ export default function DiffViewer({ result }: DiffViewerProps) {
         </div>
       </div>
 
+      {/* Reconciled Parameters Checklist */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50/70 p-3.5 rounded-xl border border-slate-100 text-xs">
+        <div className="flex items-center gap-2">
+          {result.discrepancies.some((d) => d.field.includes('total')) ? (
+            <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
+          ) : (
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          )}
+          <span className="font-semibold text-slate-700">Grand Total Amount</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {result.discrepancies.some((d) => d.field.includes('supplier') || d.field.includes('vendor')) ? (
+            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+          ) : (
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          )}
+          <span className="font-semibold text-slate-700">Vendor / Supplier</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {result.discrepancies.some((d) => d.field.includes('subtotal') || d.field.includes('tax')) ? (
+            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+          ) : (
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          )}
+          <span className="font-semibold text-slate-700">Subtotal & Tax</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {result.discrepancies.some((d) => d.field.includes('existence') || d.field.includes('items')) ? (
+            <XCircle className="w-4 h-4 text-rose-500 shrink-0" />
+          ) : (
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          )}
+          <span className="font-semibold text-slate-700">Line Items & Ledger</span>
+        </div>
+      </div>
+
       {/* Discrepancies List */}
       <div>
         <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-3.5 flex items-center justify-between">
