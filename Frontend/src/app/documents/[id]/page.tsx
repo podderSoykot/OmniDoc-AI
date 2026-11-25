@@ -10,6 +10,7 @@ import ExtractedForm from '@/components/viewer/ExtractedForm';
 import ValidationBadges from '@/components/viewer/ValidationBadges';
 import SpreadsheetViewer from '@/components/viewer/SpreadsheetViewer';
 import SpreadsheetAnalytics from '@/components/viewer/SpreadsheetAnalytics';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import { 
   ArrowLeft, 
   RefreshCw, 
@@ -32,6 +33,8 @@ export default function DocumentDetailPage() {
   const [showRawText, setShowRawText] = useState(false);
   const [spreadsheetViewTab, setSpreadsheetViewTab] = useState<'grid' | 'heuristics'>('grid');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchDoc = async () => {
     try {
@@ -63,18 +66,16 @@ export default function DocumentDetailPage() {
     }
   };
 
-  const handleDelete = async () => {
+  const handleConfirmDelete = async () => {
     if (!doc) return;
-    const confirmed = window.confirm(`Are you sure you want to delete "${doc.filename}"?\n\nThis will permanently purge this document and its extraction records.`);
-    if (!confirmed) return;
-
     try {
-      setSaving(true);
+      setIsDeleting(true);
       await api.deleteDocument(doc.id);
       window.location.href = '/';
     } catch (e: any) {
       alert(`Delete failed: ${e.message}`);
-      setSaving(false);
+      setIsDeleting(false);
+      setShowDeleteModal(false);
     }
   };
 
@@ -204,7 +205,7 @@ export default function DocumentDetailPage() {
           </button>
 
           <button
-            onClick={handleDelete}
+            onClick={() => setShowDeleteModal(true)}
             className="inline-flex items-center gap-1.5 text-xs font-bold bg-white border border-rose-200/80 text-rose-600 hover:bg-rose-50 px-3.5 py-2 rounded-xl shadow-2xs transition"
             title="Permanently delete document"
           >
@@ -308,6 +309,19 @@ export default function DocumentDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Centered Confirm Delete Modal */}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        title="Delete Document"
+        message={`Are you sure you want to delete "${doc.filename}"?\n\nThis will permanently purge this document, all ledger records, extraction data, and associated cross-verification results from PostgreSQL.`}
+        confirmText="Yes, Delete"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={isDeleting}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => !isDeleting && setShowDeleteModal(false)}
+      />
     </div>
   );
 }

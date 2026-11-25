@@ -14,6 +14,7 @@ import {
   Trash2,
   RefreshCw
 } from 'lucide-react';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 interface DocumentTableProps {
   documents: DocumentItem[];
@@ -22,16 +23,20 @@ interface DocumentTableProps {
 
 export default function DocumentTable({ documents, onDelete }: DocumentTableProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [modalTarget, setModalTarget] = useState<{ id: string; filename: string } | null>(null);
 
-  const handleDelete = async (id: string, filename: string, e: React.MouseEvent) => {
+  const requestDelete = (id: string, filename: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!onDelete) return;
-    const confirmed = window.confirm(`Are you sure you want to delete "${filename}"?\n\nThis will permanently remove the file and all associated extraction records.`);
-    if (!confirmed) return;
+    setModalTarget({ id, filename });
+  };
 
+  const handleConfirmDelete = async () => {
+    if (!modalTarget || !onDelete) return;
     try {
-      setDeletingId(id);
-      await onDelete(id, filename);
+      setDeletingId(modalTarget.id);
+      await onDelete(modalTarget.id, modalTarget.filename);
+      setModalTarget(null);
     } catch (err: any) {
       alert(`Delete failed: ${err.message}`);
     } finally {
@@ -207,7 +212,7 @@ export default function DocumentTable({ documents, onDelete }: DocumentTableProp
 
                       {onDelete && (
                         <button
-                          onClick={(e) => handleDelete(doc.id, doc.filename, e)}
+                          onClick={(e) => requestDelete(doc.id, doc.filename, e)}
                           disabled={deletingId === doc.id}
                           className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition border border-transparent hover:border-rose-100 disabled:opacity-40"
                           title="Delete document"
@@ -227,6 +232,19 @@ export default function DocumentTable({ documents, onDelete }: DocumentTableProp
           </tbody>
         </table>
       </div>
+
+      {/* Centered Confirm Delete Modal */}
+      <ConfirmModal
+        isOpen={Boolean(modalTarget)}
+        title="Delete Document"
+        message={`Are you sure you want to delete "${modalTarget?.filename}"?\n\nThis will permanently remove the file, associated ledger records, extractions, and verification results from PostgreSQL.`}
+        confirmText="Yes, Delete"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={Boolean(deletingId)}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => !deletingId && setModalTarget(null)}
+      />
     </div>
   );
 }
