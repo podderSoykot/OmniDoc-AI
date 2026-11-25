@@ -337,21 +337,21 @@ npm run start
 ### Running with Docker Compose
 
 ```bash
-docker-compose up --build
+docker compose -f deployment/docker-compose.yml up --build
 ```
 
 ---
 
 ### Step 4: Free Cloud Deployment Architecture
 
-The entire stack is deployed live on cloud platforms utilizing free-tier infrastructure:
+The entire stack is deployed live on cloud platforms utilizing free-tier infrastructure. All deployment manifests and infrastructure configurations are organized inside the [`deployment/`](deployment/) directory:
 
 | Component | Platform | Configuration & Details |
 |---|---|---|
-| **Database** | **[Neon.tech](https://neon.tech)** | Serverless PostgreSQL 18 with connection pooler and branch isolation. |
-| **Backend** | **[Render.com](https://render.com)** | Docker Web Service running FastAPI, Tesseract OCR 5.5, and OpenCV. Configured via [`render.yaml`](render.yaml). |
+| **Database** | **[Neon.tech](https://neon.tech)** | Serverless PostgreSQL 18 with connection pooler and branch isolation. Configured via [`deployment/neon.ts`](deployment/neon.ts). |
+| **Backend** | **[Render.com](https://render.com)** | Docker Web Service running FastAPI, Tesseract OCR 5.5, and OpenCV. Configured via [`deployment/render.yaml`](deployment/render.yaml). |
 | **Keep-Alive Ping** | **GitHub Actions** | Automated 10-minute scheduled cron job ([`keep_alive.yml`](.github/workflows/keep_alive.yml)) that prevents Render free instance spin-down. |
-| **Frontend** | **[Vercel](https://vercel.com)** | Production Next.js 14 deployment connected to Render API via `NEXT_PUBLIC_API_URL`. |
+| **Frontend** | **[Vercel](https://vercel.com)** | Production Next.js 14 deployment connected to Render API via `NEXT_PUBLIC_API_URL` (Root directory: `Frontend`). |
 
 ---
 
