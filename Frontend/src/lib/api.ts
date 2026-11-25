@@ -105,7 +105,10 @@ export const api = {
   logout() {
     AuthStorage.clear();
     if (typeof window !== 'undefined') {
-      window.location.href = '/login';
+      try {
+        sessionStorage.clear();
+      } catch {}
+      window.location.replace('/login');
     }
   },
 

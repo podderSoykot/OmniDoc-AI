@@ -79,8 +79,13 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     AuthStorage.clear();
-    setUser(null);
-    window.location.href = '/login';
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.clear();
+      } catch {}
+      setUser(null);
+      window.location.replace('/login');
+    }
   };
 
   const refreshUser = async () => {
