@@ -115,22 +115,14 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* KPI Cards: 5-column responsive layout */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      {/* KPI Cards: 4-column responsive layout */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Total Documents"
           value={totalDocs}
           subtitle="Stored in PostgreSQL"
           icon={<FileText className="w-5 h-5 text-indigo-600" />}
           color="from-indigo-500/10 to-violet-500/10 text-indigo-600"
-        />
-        <StatCard
-          title="Total Grand Volume"
-          value={`$${cumulativeGrandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          subtitle={`${valuedDocsCount} valued files`}
-          icon={<DollarSign className="w-5 h-5 text-emerald-600" />}
-          color="from-emerald-500/10 to-teal-500/10 text-emerald-600"
-          badge="Cumulative"
         />
         <StatCard
           title="Audited & Passed"

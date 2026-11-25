@@ -116,37 +116,6 @@ export default function Sidebar() {
                 })}
               </nav>
             </div>
-
-            {/* Quick System Status Card */}
-            <div className="bg-slate-50/80 rounded-2xl p-3.5 border border-slate-200/60 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                  Cluster Status
-                </span>
-                <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Live
-                </span>
-              </div>
-
-              <div className="space-y-1.5 text-[11px]">
-                <div className="flex items-center justify-between text-slate-700 font-medium">
-                  <span className="flex items-center gap-1.5 text-slate-500">
-                    <Database className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>PostgreSQL:</span>
-                  </span>
-                  <span className="font-mono font-bold text-slate-900">Port 5433</span>
-                </div>
-
-                <div className="flex items-center justify-between text-slate-700 font-medium">
-                  <span className="flex items-center gap-1.5 text-slate-500">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>FastAPI REST:</span>
-                  </span>
-                  <span className="font-mono font-bold text-slate-900">Port 8000</span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 
