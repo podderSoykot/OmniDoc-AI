@@ -32,6 +32,7 @@ export interface DocumentItem {
   file_size_bytes: number;
   page_count: number;
   status: string;
+  error_message?: string | null;
   review_status?: string;
   total?: number | null;
   currency?: string | null;

@@ -18,7 +18,9 @@ import {
   ChevronDown,
   BarChart3,
   AlertTriangle,
-  FolderOpen
+  FolderOpen,
+  Layers,
+  AlertOctagon
 } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthGuard';
 
@@ -26,9 +28,11 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dashboardOpen, setDashboardOpen] = useState(true);
+  const [batchOpen, setBatchOpen] = useState(true);
   const { user, logout } = useAuth();
 
   const isDashboardActive = pathname === '/' || pathname === '/analytics' || pathname === '/review-queue';
+  const isBatchActive = pathname === '/upload' || pathname === '/upload/queue' || pathname === '/upload/failed';
 
   return (
     <>
@@ -168,19 +172,73 @@ export default function Sidebar() {
                   )}
                 </div>
 
-                {/* 2. Batch Ingestion */}
-                <Link
-                  href="/upload"
-                  onClick={() => setMobileOpen(false)}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                    pathname === '/upload'
-                      ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/20'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
-                  }`}
-                >
-                  <UploadCloud className={`w-4 h-4 ${pathname === '/upload' ? 'text-white' : 'text-slate-400'}`} />
-                  <span>Batch Ingestion</span>
-                </Link>
+                {/* 2. Batch Ingestion Accordion with Sub-Pages */}
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setBatchOpen(!batchOpen)}
+                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                      isBatchActive
+                        ? 'text-indigo-900 bg-indigo-50/80 font-extrabold'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <UploadCloud className={`w-4 h-4 ${isBatchActive ? 'text-indigo-600' : 'text-slate-400'}`} />
+                      <span>Batch Ingestion</span>
+                    </div>
+                    <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${batchOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* Nested Sub-Pages */}
+                  {batchOpen && (
+                    <div className="pl-6 pr-1 pt-1 pb-1 space-y-1 border-l-2 border-indigo-100 ml-4 mt-1">
+                      <Link
+                        href="/upload"
+                        onClick={() => setMobileOpen(false)}
+                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition ${
+                          pathname === '/upload'
+                            ? 'bg-indigo-600 text-white shadow-xs font-bold'
+                            : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/70'
+                        }`}
+                      >
+                        <UploadCloud className="w-3.5 h-3.5" />
+                        <span>Upload Dropzone</span>
+                      </Link>
+
+                      <Link
+                        href="/upload/queue"
+                        onClick={() => setMobileOpen(false)}
+                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition ${
+                          pathname === '/upload/queue'
+                            ? 'bg-indigo-600 text-white shadow-xs font-bold'
+                            : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/70'
+                        }`}
+                      >
+                        <Layers className="w-3.5 h-3.5" />
+                        <span>Processing Queue</span>
+                      </Link>
+
+                      <Link
+                        href="/upload/failed"
+                        onClick={() => setMobileOpen(false)}
+                        className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition ${
+                          pathname === '/upload/failed'
+                            ? 'bg-indigo-600 text-white shadow-xs font-bold'
+                            : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/70'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <AlertOctagon className="w-3.5 h-3.5 text-rose-500" />
+                          <span>Failed & Retries</span>
+                        </div>
+                        <span className="text-[9px] uppercase px-1.5 py-0.2 rounded font-black bg-rose-100 text-rose-700">
+                          Retry
+                        </span>
+                      </Link>
+                    </div>
+                  )}
+                </div>
 
                 {/* 3. Cross-Verification */}
                 <Link

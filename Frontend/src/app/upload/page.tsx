@@ -75,9 +75,21 @@ export default function UploadPage() {
         </Link>
 
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-          <span className="text-[11px] uppercase tracking-wider font-extrabold text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200/60 shadow-xs">
-            Asynchronous Ingestion Engine
+          <Link
+            href="/upload/queue"
+            className="text-[11px] font-bold text-slate-500 hover:text-indigo-600 transition flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200/70 px-3 py-1 rounded-full"
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Processing Queue</span>
+          </Link>
+          <Link
+            href="/upload/failed"
+            className="text-[11px] font-bold text-rose-600 hover:text-rose-700 transition flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 px-3 py-1 rounded-full border border-rose-100"
+          >
+            <span>Failed & Retries</span>
+          </Link>
+          <span className="hidden sm:inline-flex text-[11px] uppercase tracking-wider font-extrabold text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200/60 shadow-xs">
+            Asynchronous Engine
           </span>
         </div>
       </div>
