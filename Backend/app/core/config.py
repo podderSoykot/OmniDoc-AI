@@ -13,8 +13,11 @@ class Settings(BaseSettings):
     UPLOAD_DIR: Path = STORAGE_DIR / "uploads"
     PROCESSED_DIR: Path = STORAGE_DIR / "processed"
     
-    # Database
-    DATABASE_URL: str = f"sqlite:///{STORAGE_DIR}/omnidoc.db"
+    # Database (PostgreSQL by default)
+    DATABASE_URL: str = os.getenv(
+        "DATABASE_URL", 
+        "postgresql://postgres:postgres@localhost:5432/omnidoc"
+    )
     
     # LLM Settings
     LLM_PROVIDER: str = "gemini"  # "gemini" or "openai" or "mock"
