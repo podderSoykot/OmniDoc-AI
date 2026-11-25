@@ -12,7 +12,8 @@ import {
   Sheet, 
   Image as ImageIcon,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  Edit3
 } from 'lucide-react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
@@ -201,6 +202,14 @@ export default function DocumentTable({ documents, onDelete }: DocumentTableProp
 
                   <td className="px-6 py-4 text-right">
                     <div className="inline-flex items-center gap-1.5">
+                      <Link
+                        href={`/documents/${doc.id}`}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition border border-transparent hover:border-indigo-100"
+                        title="Edit extracted fields & values"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </Link>
+
                       <Link
                         href={`/documents/${doc.id}`}
                         className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-white bg-indigo-50 hover:bg-indigo-600 px-3 py-1.5 rounded-lg transition-all duration-150"
