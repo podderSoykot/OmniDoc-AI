@@ -113,7 +113,8 @@ export default function DocumentDetailPage() {
     ? Object.values(doc.sheets).reduce((acc, sheetRows) => acc + (sheetRows?.length || 0), 0)
     : 0;
 
-  const downloadUrl = `http://localhost:8000/api/v1/documents/${doc.id}/download`;
+  const backendBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  const downloadUrl = `${backendBase}/api/v1/documents/${doc.id}/download`;
 
   return (
     <div className="space-y-6">

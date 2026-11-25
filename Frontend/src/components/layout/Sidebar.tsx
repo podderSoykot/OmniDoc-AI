@@ -159,7 +159,7 @@ export default function Sidebar() {
           )}
 
           <a
-            href="http://localhost:8000/docs"
+            href={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}/docs`}
             target="_blank"
             rel="noreferrer"
             className="flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-bold text-slate-500 hover:text-indigo-600 hover:bg-indigo-50/70 border border-slate-200/70 transition"

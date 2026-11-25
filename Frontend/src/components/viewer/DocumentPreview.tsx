@@ -8,9 +8,10 @@ interface DocumentPreviewProps {
 }
 
 export default function DocumentPreview({ documentId, fileType, filename }: DocumentPreviewProps) {
-  const downloadUrl = `http://localhost:8000/api/v1/documents/${documentId}/download`;
+  const backendBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  const downloadUrl = `${backendBase}/api/v1/documents/${documentId}/download`;
   const fileExt = filename.split('.').pop() || '';
-  const fileUrl = `http://localhost:8000/files/${documentId}.${fileExt}`;
+  const fileUrl = `${backendBase}/files/${documentId}.${fileExt}`;
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200/80 p-4 h-[780px] flex flex-col shadow-sm">
