@@ -1,13 +1,28 @@
 # OmniDoc-AI: Production-Grade Document Intelligence System
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-black?style=for-the-badge&logo=vercel)](https://omnidoc-frontend-mauve.vercel.app)
+[![Backend API](https://img.shields.io/badge/Backend%20API-Render-46E3B7?style=for-the-badge&logo=render)](https://omnidoc-ai-backend-9oin.onrender.com/docs)
+[![Database](https://img.shields.io/badge/Database-Neon%20Postgres-00E599?style=for-the-badge&logo=postgresql)](https://neon.tech)
+
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI%200.115-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com)
 [![Next.js](https://img.shields.io/badge/Frontend-Next.js%2014-000000?style=flat-square&logo=next.js)](https://nextjs.org)
-[![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL%2016-336791?style=flat-square&logo=postgresql)](https://www.postgresql.org)
+[![PostgreSQL](https://img.shields.io/badge/Database-Neon%20Postgres%2018-336791?style=flat-square&logo=postgresql)](https://neon.tech)
 [![Backend Tests](https://img.shields.io/badge/Backend%20Tests-27%20Passed%20(100%25)-success?style=flat-square&logo=pytest)](https://docs.pytest.org)
 [![Frontend Tests](https://img.shields.io/badge/Frontend%20Tests-5%20Passed%20(100%25)-success?style=flat-square&logo=vitest)](Frontend)
 [![Coverage](https://img.shields.io/badge/Test%20Coverage-70%25-brightgreen?style=flat-square)](Backend)
 [![User Guide](https://img.shields.io/badge/Docs-App%20User%20Guide-indigo?style=flat-square)](APP_USER_GUIDE.md)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
+
+---
+
+### 🌐 Live Production Deployments
+
+| Component | Platform | URL | Health / Docs |
+|---|---|---|---|
+| **Frontend Web App** | **Vercel** | [https://omnidoc-frontend-mauve.vercel.app](https://omnidoc-frontend-mauve.vercel.app) | [Health Probe](https://omnidoc-frontend-mauve.vercel.app/api/health) |
+| **FastAPI Backend** | **Render (Docker)** | [https://omnidoc-ai-backend-9oin.onrender.com](https://omnidoc-ai-backend-9oin.onrender.com) | [Swagger UI Docs](https://omnidoc-ai-backend-9oin.onrender.com/docs) |
+| **Serverless Database** | **Neon (AWS eu-west-2)** | Pooled Connection with Autoscaling | Verified PostgreSQL 18.7 |
+| **Always-Warm Automation** | **GitHub Actions** | Automated 10-min keep-alive ping | [.github/workflows/keep_alive.yml](.github/workflows/keep_alive.yml) |
 
 > **Visual User Guide**: For an illustrated walkthrough of all screens with verified environment details, see [APP_USER_GUIDE.md](APP_USER_GUIDE.md).
 
@@ -324,6 +339,19 @@ npm run start
 ```bash
 docker-compose up --build
 ```
+
+---
+
+### Step 4: Free Cloud Deployment Architecture
+
+The entire stack is deployed live on cloud platforms utilizing free-tier infrastructure:
+
+| Component | Platform | Configuration & Details |
+|---|---|---|
+| **Database** | **[Neon.tech](https://neon.tech)** | Serverless PostgreSQL 18 with connection pooler and branch isolation. |
+| **Backend** | **[Render.com](https://render.com)** | Docker Web Service running FastAPI, Tesseract OCR 5.5, and OpenCV. Configured via [`render.yaml`](render.yaml). |
+| **Keep-Alive Ping** | **GitHub Actions** | Automated 10-minute scheduled cron job ([`keep_alive.yml`](.github/workflows/keep_alive.yml)) that prevents Render free instance spin-down. |
+| **Frontend** | **[Vercel](https://vercel.com)** | Production Next.js 14 deployment connected to Render API via `NEXT_PUBLIC_API_URL`. |
 
 ---
 
