@@ -13,10 +13,10 @@ class Settings(BaseSettings):
     UPLOAD_DIR: Path = STORAGE_DIR / "uploads"
     PROCESSED_DIR: Path = STORAGE_DIR / "processed"
     
-    # Database (PostgreSQL by default)
+    # Database (PostgreSQL on local machine port 5433)
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL", 
-        "postgresql://postgres:postgres@localhost:5432/omnidoc_ai"
+        "postgresql://postgres:soykot@localhost:5433/omnidoc_ai"
     )
     
     # LLM Settings
