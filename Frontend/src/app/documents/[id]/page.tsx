@@ -313,11 +313,10 @@ export default function DocumentDetailPage() {
       {/* Centered Confirm Delete Modal */}
       <ConfirmModal
         isOpen={showDeleteModal}
-        title="Delete Document"
-        message={`Are you sure you want to delete "${doc.filename}"?\n\nThis will permanently purge this document, all ledger records, extraction data, and associated cross-verification results from PostgreSQL.`}
-        confirmText="Yes, Delete"
+        title="Delete Document?"
+        message="Your document will be permanently deleted and cannot be recovered."
+        confirmText="Delete"
         cancelText="Cancel"
-        variant="danger"
         isLoading={isDeleting}
         onConfirm={handleConfirmDelete}
         onCancel={() => !isDeleting && setShowDeleteModal(false)}

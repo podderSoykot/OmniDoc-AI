@@ -248,11 +248,10 @@ export default function DocumentTable({ documents, onDelete }: DocumentTableProp
       {/* Centered Confirm Delete Modal */}
       <ConfirmModal
         isOpen={Boolean(modalTarget)}
-        title="Delete Document"
-        message={`Are you sure you want to delete "${modalTarget?.filename}"?\n\nThis will permanently remove the file, associated ledger records, extractions, and verification results from PostgreSQL.`}
-        confirmText="Yes, Delete"
+        title="Delete Document?"
+        message="Your document will be permanently deleted and cannot be recovered."
+        confirmText="Delete"
         cancelText="Cancel"
-        variant="danger"
         isLoading={Boolean(deletingId)}
         onConfirm={handleConfirmDelete}
         onCancel={() => !deletingId && setModalTarget(null)}
