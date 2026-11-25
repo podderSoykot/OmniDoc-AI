@@ -101,7 +101,7 @@ function VerificationContent() {
   const targetDoc = documents.find((d) => d.id === targetDocId);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-7">
+    <div className="w-full space-y-7">
       <div className="flex items-center justify-between">
         <Link
           href="/"

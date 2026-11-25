@@ -51,7 +51,7 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-7">
+    <div className="w-full max-w-5xl mx-auto space-y-7">
       <div className="flex items-center justify-between">
         <Link
           href="/"
