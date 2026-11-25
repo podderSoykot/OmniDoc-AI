@@ -13,16 +13,23 @@ class CrossVerificationOrchestrator:
         target_type: str,
         source_data: Dict[str, Any],
         target_data: Dict[str, Any],
-        target_sheets: Optional[Dict[str, Any]] = None
+        target_sheets: Optional[Dict[str, Any]] = None,
+        source_sheets: Optional[Dict[str, Any]] = None
     ) -> CrossVerifyResponse:
         """
-        Dispatches cross-verification based on document types (PDF-PDF or PDF-Excel).
+        Dispatches cross-verification symmetrically based on document types (PDF-PDF or PDF-Excel or Excel-PDF).
         """
         verify_id = str(uuid.uuid4())
 
-        if target_type in ("excel", "csv") and target_sheets:
+        source_is_sheet = source_type in ("excel", "csv") or bool(source_sheets)
+        target_is_sheet = target_type in ("excel", "csv") or bool(target_sheets)
+
+        if target_sheets and (target_is_sheet or not source_is_sheet):
             res = PDFToExcelVerifier.verify(source_data, target_sheets)
             v_type = "pdf_excel"
+        elif source_sheets and (source_is_sheet or not target_is_sheet):
+            res = PDFToExcelVerifier.verify(target_data, source_sheets)
+            v_type = "excel_pdf"
         else:
             res = PDFToPDFVerifier.verify(source_data, target_data)
             v_type = "pdf_pdf"

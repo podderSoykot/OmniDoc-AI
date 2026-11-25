@@ -1,6 +1,17 @@
+'use client';
+
 import React from 'react';
 import { CrossVerifyResponse } from '@/lib/types';
-import { CheckCircle2, AlertTriangle, XCircle, ArrowRight, ShieldCheck } from 'lucide-react';
+import { 
+  CheckCircle2, 
+  AlertTriangle, 
+  XCircle, 
+  ArrowRight, 
+  ShieldCheck, 
+  Layers, 
+  FileText,
+  FileSpreadsheet
+} from 'lucide-react';
 
 interface DiffViewerProps {
   result: CrossVerifyResponse;
@@ -8,38 +19,79 @@ interface DiffViewerProps {
 
 export default function DiffViewer({ result }: DiffViewerProps) {
   const isHighMatch = result.match_score >= 80;
+  const isPartial = result.match_score >= 50 && result.match_score < 80;
+  const isSpreadsheetReconciliation = result.verification_type.includes('excel');
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-6">
+      {/* Outcome Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
         <div>
-          <span className="text-[11px] uppercase font-bold tracking-wider text-slate-400">Cross-Verification Outcome</span>
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+              {isSpreadsheetReconciliation ? 'PDF ↔ Excel Ledger Reconciliation' : 'PDF ↔ PDF 3-Way Match'}
+            </span>
+            <span
+              className={`text-[10px] uppercase font-black px-2 py-0.5 rounded-full ${
+                result.status === 'MATCHED'
+                  ? 'bg-emerald-100 text-emerald-800'
+                  : result.status === 'PARTIAL_MATCH'
+                  ? 'bg-amber-100 text-amber-800'
+                  : 'bg-rose-100 text-rose-800'
+              }`}
+            >
+              {result.status}
+            </span>
+          </div>
           <h3 className="text-lg font-black text-slate-900 mt-1">{result.summary}</h3>
-          <p className="text-xs text-slate-500 mt-0.5">Automated comparison across all fields and line item amounts</p>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Automated pairwise reconciliation engine auditing identifiers, amounts, vendor, and math rules.
+          </p>
         </div>
 
-        <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/80 p-3 rounded-2xl">
+        <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/80 p-3 rounded-2xl shrink-0">
           <div className="text-right">
-            <span className={`text-3xl font-black ${isHighMatch ? 'text-emerald-600' : 'text-rose-600'}`}>
+            <span
+              className={`text-3xl font-black ${
+                isHighMatch ? 'text-emerald-600' : isPartial ? 'text-amber-600' : 'text-rose-600'
+              }`}
+            >
               {result.match_score}%
             </span>
             <p className="text-[10px] uppercase font-bold text-slate-400">Match Confidence</p>
           </div>
-          <div className={`p-2.5 rounded-xl ${isHighMatch ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+          <div
+            className={`p-2.5 rounded-xl ${
+              isHighMatch
+                ? 'bg-emerald-100 text-emerald-700'
+                : isPartial
+                ? 'bg-amber-100 text-amber-700'
+                : 'bg-rose-100 text-rose-700'
+            }`}
+          >
             <ShieldCheck className="w-5 h-5" />
           </div>
         </div>
       </div>
 
+      {/* Discrepancies List */}
       <div>
-        <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-3.5">
-          Audited Discrepancies ({result.discrepancies.length})
+        <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-3.5 flex items-center justify-between">
+          <span>Audited Discrepancies ({result.discrepancies.length})</span>
+          {result.discrepancies.length === 0 && (
+            <span className="text-[11px] font-bold text-emerald-600">100% Agreement</span>
+          )}
         </h4>
 
         {result.discrepancies.length === 0 ? (
           <div className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-200/80 rounded-xl text-emerald-800 text-xs font-semibold">
             <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-            <span>Complete agreement! Both documents correspond with zero discrepancy in totals, vendor names, or items.</span>
+            <div>
+              <p className="font-bold text-emerald-900">Complete pairwise agreement!</p>
+              <p className="text-emerald-700 text-[11px] mt-0.5">
+                Both documents correspond with 0 discrepancy across all identifiers, line item amounts, tax rates, and vendor entities.
+              </p>
+            </div>
           </div>
         ) : (
           <div className="space-y-3">
@@ -67,15 +119,18 @@ export default function DiffViewer({ result }: DiffViewerProps) {
 
                 <p className="font-semibold text-slate-700">{disc.message}</p>
 
-                <div className="mt-2.5 flex items-center gap-3 text-slate-700 bg-white/90 p-2.5 rounded-lg border border-slate-200/60 font-medium">
-                  <div className="truncate flex-1">
-                    <span className="font-bold text-slate-400 block text-[10px] uppercase">Source Document</span>
-                    <span className="text-slate-800 font-bold">{String(disc.source_value)}</span>
+                <div className="mt-2.5 grid grid-cols-1 sm:grid-cols-2 gap-3 text-slate-700 bg-white/90 p-3 rounded-lg border border-slate-200/60 font-medium">
+                  <div>
+                    <span className="font-bold text-slate-400 block text-[10px] uppercase tracking-wider">
+                      Source Document Value
+                    </span>
+                    <span className="text-slate-800 font-bold block mt-0.5">{String(disc.source_value ?? 'N/A')}</span>
                   </div>
-                  <ArrowRight className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                  <div className="truncate flex-1">
-                    <span className="font-bold text-slate-400 block text-[10px] uppercase">Target Document</span>
-                    <span className="text-slate-800 font-bold">{String(disc.target_value)}</span>
+                  <div>
+                    <span className="font-bold text-slate-400 block text-[10px] uppercase tracking-wider">
+                      Target Document Value
+                    </span>
+                    <span className="text-slate-800 font-bold block mt-0.5">{String(disc.target_value ?? 'N/A')}</span>
                   </div>
                 </div>
               </div>

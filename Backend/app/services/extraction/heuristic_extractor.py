@@ -6,21 +6,37 @@ class HeuristicExtractor:
     @staticmethod
     def extract_from_text(text: str) -> InvoiceExtractionSchema:
         """
-        Rule-based pattern extractor for invoices and receipts.
-        Extracts invoice number, dates, totals, and line items.
+        Rule-based pattern extractor for invoices, receipts, and POs.
+        Extracts invoice number, dates, totals, supplier, and line items.
         """
         lines = [line.strip() for line in text.split("\n") if line.strip()]
+        content_lines = [l for l in lines if not re.match(r'^---\s*\[.*?\]\s*---$', l)]
 
-        # 1. Invoice Number
-        inv_match = re.search(r'(?:invoice|inv|bill|receipt|po)(?:\s*(?:number|num|no|#))?[\s.:#-]*([A-Za-z0-9-_]{3,25})', text, re.I)
+        # 1. Invoice / PO Identifier
         invoice_number = None
+        # Explicit "Invoice Number: ..." or "PO Number: ..." on same line
+        inv_match = re.search(
+            r'(?:invoice|inv|bill|receipt|po)[^\S\r\n]*(?:number|num|no|#)[^\S\r\n]*[:#-][^\S\r\n]*([A-Za-z0-9\-_/]{3,30})',
+            text, re.I
+        )
+        if not inv_match:
+            inv_match = re.search(
+                r'\b(?:invoice|inv|po)[^\S\r\n]*[:#-][^\S\r\n]*([A-Za-z0-9\-_/]{3,30})',
+                text, re.I
+            )
+        if not inv_match:
+            inv_match = re.search(r'\b((?:INV|PO|REC|TXN)[-_][A-Za-z0-9\-_]+)\b', text, re.I)
+
         if inv_match:
             candidate = inv_match.group(1).strip()
-            if candidate.lower() not in ("number", "num", "no", "date", "bill", "invoice"):
+            if candidate.lower() not in ("number", "num", "no", "date", "bill", "invoice", "supply", "total", "subtotal"):
                 invoice_number = candidate
 
         # 2. Date
-        date_match = re.search(r'(?:date|dated|issue\s*date)[\s.:-]*(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4})', text, re.I)
+        date_match = re.search(
+            r'(?:date|dated|issue\s*date)[\s.:-]*(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4})',
+            text, re.I
+        )
         invoice_date = date_match.group(1) if date_match else None
 
         # 3. Currency
@@ -33,7 +49,16 @@ class HeuristicExtractor:
         total = HeuristicExtractor._extract_amount(r'(?<!sub)\b(?:total|grand\s*total|amount\s*due)\b[\s.:$€£]*([\d,]+\.\d{2})', text)
 
         # 5. Supplier / Customer
-        supplier_name = lines[0] if lines else "Unknown Supplier"
+        supplier_name = "Unknown Supplier"
+        supp_match = re.search(r'(?:supplier|vendor|from|company|issued\s*by)[\s.:-]*([^\n]+)', text, re.I)
+        if supp_match and supp_match.group(1).strip().lower() not in ("name", "details", "info", "address"):
+            supplier_name = supp_match.group(1).strip()
+        else:
+            for l in content_lines:
+                if l.upper() not in ("INVOICE", "TAX INVOICE", "PURCHASE ORDER", "PO", "RECEIPT", "BILL OF LADING", "STATEMENT"):
+                    supplier_name = l
+                    break
+
         customer_match = re.search(r'(?:bill\s*to|customer|client|sold\s*to)[\s.:-]*([^\n]+)', text, re.I)
         customer_name = customer_match.group(1).strip() if customer_match else None
 

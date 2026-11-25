@@ -20,6 +20,11 @@ def run_cross_verification(req: CrossVerifyRequest, db: Session = Depends(get_db
     src_data = src_doc.extraction.structured_data if src_doc.extraction else {}
     tgt_data = tgt_doc.extraction.structured_data if tgt_doc.extraction else {}
 
+    src_sheets = None
+    if src_doc.file_type in ("excel", "csv"):
+        parsed = ExcelParser.parse_spreadsheet(Path(src_doc.file_path))
+        src_sheets = parsed.get("sheets")
+
     tgt_sheets = None
     if tgt_doc.file_type in ("excel", "csv"):
         parsed = ExcelParser.parse_spreadsheet(Path(tgt_doc.file_path))
@@ -32,7 +37,8 @@ def run_cross_verification(req: CrossVerifyRequest, db: Session = Depends(get_db
         target_type=tgt_doc.file_type,
         source_data=src_data,
         target_data=tgt_data,
-        target_sheets=tgt_sheets
+        target_sheets=tgt_sheets,
+        source_sheets=src_sheets
     )
 
     # Persist verification result
