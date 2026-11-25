@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     # Database (PostgreSQL by default)
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL", 
-        "postgresql://postgres:postgres@localhost:5432/omnidoc"
+        "postgresql://postgres:postgres@localhost:5432/omnidoc_ai"
     )
     
     # LLM Settings

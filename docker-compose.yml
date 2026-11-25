@@ -7,13 +7,13 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=omnidoc
+      - POSTGRES_DB=omnidoc_ai
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d omnidoc"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d omnidoc_ai"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -27,7 +27,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/omnidoc
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/omnidoc_ai
       - LLM_PROVIDER=gemini
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
