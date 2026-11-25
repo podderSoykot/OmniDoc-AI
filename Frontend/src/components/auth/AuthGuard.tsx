@@ -85,7 +85,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname?.startsWith(route));
 
-  if (loading) {
+  // If user is already on a public route (like /login or /signup) and has no token, don't show full-screen loader
+  if (loading && !isPublicRoute) {
     return (
       <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-white">
         <div className="flex flex-col items-center space-y-4">
