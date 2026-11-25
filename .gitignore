@@ -28,3 +28,4 @@ Frontend/build/
 Thumbs.db
 .neon
 node_modules/
+.vercel/
