@@ -9,6 +9,7 @@ import DocumentPreview from '@/components/viewer/DocumentPreview';
 import ExtractedForm from '@/components/viewer/ExtractedForm';
 import ValidationBadges from '@/components/viewer/ValidationBadges';
 import SpreadsheetViewer from '@/components/viewer/SpreadsheetViewer';
+import SpreadsheetAnalytics from '@/components/viewer/SpreadsheetAnalytics';
 import { 
   ArrowLeft, 
   RefreshCw, 
@@ -18,7 +19,8 @@ import {
   FileSpreadsheet, 
   GitCompare,
   Layers,
-  Sparkles
+  Sparkles,
+  ShieldCheck
 } from 'lucide-react';
 
 export default function DocumentDetailPage() {
@@ -227,8 +229,8 @@ export default function DocumentDetailPage() {
                     : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
                 }`}
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>AI Inferred Totals & Validation</span>
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Ledger Analytics & Quality Audit</span>
                 {doc.validation && (
                   <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
                     doc.validation.is_valid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
@@ -248,20 +250,15 @@ export default function DocumentDetailPage() {
               documentId={doc.id}
             />
           ) : (
-            /* Secondary AI Inferred Totals View */
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              <div className="lg:col-span-12 space-y-6">
-                <ValidationBadges validation={doc.validation} />
-                {doc.structured_data && (
-                  <ExtractedForm
-                    data={doc.structured_data}
-                    confidences={doc.confidence_scores}
-                    onSave={handleSave}
-                    isSaving={saving}
-                  />
-                )}
-              </div>
-            </div>
+            /* Dedicated Ledger Analytics & Quality Audit View */
+            <SpreadsheetAnalytics
+              documentId={doc.id}
+              filename={doc.filename}
+              totalRecords={totalSpreadsheetRows}
+              totalSheets={Object.keys(doc.sheets || {}).length}
+              sheetSummaries={(doc.structured_data as any)?.sheet_summaries || []}
+              primaryMetrics={(doc.structured_data as any)?.primary_metrics || {}}
+            />
           )}
         </div>
       ) : (

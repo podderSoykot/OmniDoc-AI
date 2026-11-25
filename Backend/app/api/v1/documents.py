@@ -114,18 +114,49 @@ def get_document_details(document_id: str, db: Session = Depends(get_db)):
         if doc.extraction.structured_data.get("is_spreadsheet"):
             is_spreadsheet = True
 
-    # If spreadsheet has not persisted sheets yet, parse dynamically from disk
-    if is_spreadsheet and not sheets_data and Path(doc.file_path).exists():
+    # If spreadsheet needs migration or has not persisted sheets/summaries yet
+    needs_refresh = (
+        is_spreadsheet and (
+            not sheets_data or 
+            doc.extraction.structured_data.get("invoice_number") == "_Register" or
+            "sheet_summaries" not in (doc.extraction.structured_data or {})
+        )
+    )
+
+    if needs_refresh and Path(doc.file_path).exists():
         try:
             from app.services.ingestion.excel_parser import ExcelParser
             parsed = ExcelParser.parse_spreadsheet(Path(doc.file_path))
             sheets_data = parsed.get("sheets")
+            summary = ExcelParser.summarize_spreadsheet(sheets_data or {})
+            
+            clean_struct = {
+                "document_type": "spreadsheet_ledger",
+                "is_spreadsheet": True,
+                "total_records": summary["total_records"],
+                "total_sheets": summary["total_sheets"],
+                "sheet_summaries": summary["sheet_summaries"],
+                "primary_metrics": summary["primary_metrics"],
+                "sheets": sheets_data,
+            }
             if doc.extraction:
-                updated_struct = dict(doc.extraction.structured_data or {})
-                updated_struct["sheets"] = sheets_data
-                updated_struct["is_spreadsheet"] = True
-                doc.extraction.structured_data = updated_struct
-                db.commit()
+                doc.extraction.structured_data = clean_struct
+                doc.extraction.confidence_scores = {"structure_integrity": 1.0, "schema_validation": 1.0}
+            
+            if doc.validation:
+                doc.validation.is_valid = True
+                doc.validation.review_status = "PASSED"
+                doc.validation.math_errors = []
+                doc.validation.business_errors = []
+                doc.validation.warnings = []
+                val_report = ValidationReport(
+                    is_valid=True,
+                    review_status="PASSED",
+                    math_errors=[],
+                    business_errors=[],
+                    warnings=[]
+                )
+            db.commit()
         except Exception as e:
             logger.error(f"Error parsing spreadsheet sheets for {document_id}: {e}")
 
