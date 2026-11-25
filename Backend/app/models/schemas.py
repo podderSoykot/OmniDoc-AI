@@ -55,13 +55,40 @@ class DocumentListItemResponse(BaseModel):
     supplier_name: Optional[str] = None
     created_at: datetime
 
+class PaginatedDocumentResponse(BaseModel):
+    items: List[DocumentListItemResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
 class JobStatusResponse(BaseModel):
     job_id: str
     document_id: str
-    status: str  # pending, processing, completed, failed
+    status: str  # pending, processing, completed, failed, cancelled
     progress_percentage: int
     current_step: str
     error: Optional[str] = None
+    retry_count: int = 0
+    max_retries: int = 3
+    is_dead_letter: bool = False
+
+class DeadLetterJobResponse(BaseModel):
+    job_id: str
+    document_id: str
+    filename: Optional[str] = None
+    status: str
+    error: Optional[str] = None
+    retry_count: int
+    max_retries: int
+    created_at: datetime
+    updated_at: datetime
+
+class SignedUrlResponse(BaseModel):
+    document_id: str
+    preview_url: str
+    download_url: str
+    expires_in_seconds: int
 
 class ManualCorrectionRequest(BaseModel):
     structured_data: Dict[str, Any]

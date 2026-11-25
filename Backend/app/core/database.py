@@ -1,13 +1,20 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.pool import StaticPool
 from app.core.config import settings
 
-is_sqlite = settings.DATABASE_URL.startswith("sqlite")
+db_url = settings.DATABASE_URL
+if db_url.startswith("postgresql://"):
+    db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+
+is_sqlite = db_url.startswith("sqlite")
 connect_args = {"check_same_thread": False} if is_sqlite else {}
 pool_kwargs = {"pool_pre_ping": True} if not is_sqlite else {}
+if is_sqlite and ":memory:" in db_url:
+    pool_kwargs["poolclass"] = StaticPool
 
 engine = create_engine(
-    settings.DATABASE_URL,
+    db_url,
     connect_args=connect_args,
     **pool_kwargs,
     echo=settings.DEBUG

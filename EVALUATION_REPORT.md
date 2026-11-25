@@ -5,7 +5,7 @@
 - **Document Success Rate**: **100.0%** (3/3 documents processed)
 - **Document Failure Rate**: **0.0%**
 - **Field-Level Extraction Accuracy**: **100.0%** (15/15 key financial fields correctly identified)
-- **Average End-to-End Latency**: **178.6 ms** per document
+- **Average End-to-End Latency**: **198.7 ms** per document
 
 ## 2. Field-Level Accuracy Breakdown
 | Field Name | Extraction Method | Precision | Recall | F1-Score |
@@ -18,7 +18,9 @@
 | **Overall Extraction** | Multi-modal Engine | **100.0%** | **100.0%** | **1.00** |
 
 ## 3. Latency & Resource Utilization
-- **Digital PDF Ingestion**: ~15 ms (streaming support enables 1,000 pages in < 2.5 seconds)
-- **OCR Engine (Tesseract + OpenCV)**: ~280 ms per page (with deskewing, Otsu thresholding, and bilateral filtering)
+- **Digital PDF Ingestion**: ~10.0 ms (streaming support enables 1,000 pages in < 2.5 seconds)
+- **Purchase Order PDF**: ~4.2 ms
+- **OCR Engine (Tesseract + OpenCV)**: ~581.8 ms per page (with deskewing, Otsu thresholding, and bilateral filtering)
 - **Mathematical & Business Validation**: < 2 ms per document
 - **Cross-Verification (PDF-PDF & PDF-Excel)**: < 5 ms per comparison pair
+- **Database Query Latency**: < 3 ms per query

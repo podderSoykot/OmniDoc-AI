@@ -6,6 +6,9 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
+def utcnow():
+    return datetime.datetime.now(datetime.timezone.utc)
+
 class User(Base):
     __tablename__ = "users"
 
@@ -14,11 +17,12 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(255), nullable=True)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
     # Multi-tenant document ownership
     documents = relationship("Document", back_populates="user", cascade="all, delete-orphan")
     cross_verifications = relationship("CrossVerification", back_populates="user", cascade="all, delete-orphan")
+    jobs = relationship("ProcessingJob", back_populates="user", cascade="all, delete-orphan")
 
 class Document(Base):
     __tablename__ = "documents"
@@ -32,14 +36,15 @@ class Document(Base):
     page_count = Column(Integer, default=1)
     status = Column(String(32), default="pending", index=True)  # pending, processing, completed, failed
     error_message = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
     # Relationships
     user = relationship("User", back_populates="documents")
     extraction = relationship("DocumentExtraction", back_populates="document", uselist=False, cascade="all, delete-orphan")
     validation = relationship("ValidationResult", back_populates="document", uselist=False, cascade="all, delete-orphan")
     audit_logs = relationship("AuditLog", back_populates="document", cascade="all, delete-orphan")
+    jobs = relationship("ProcessingJob", back_populates="document", cascade="all, delete-orphan")
 
 class DocumentExtraction(Base):
     __tablename__ = "document_extractions"
@@ -50,7 +55,7 @@ class DocumentExtraction(Base):
     structured_data = Column(JSON, nullable=True)
     confidence_scores = Column(JSON, nullable=True)
     processing_time_ms = Column(Float, default=0.0)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
     document = relationship("Document", back_populates="extraction")
 
@@ -64,7 +69,7 @@ class ValidationResult(Base):
     math_errors = Column(JSON, default=list)
     business_errors = Column(JSON, default=list)
     warnings = Column(JSON, default=list)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
     document = relationship("Document", back_populates="validation")
 
@@ -77,7 +82,7 @@ class AuditLog(Base):
     old_value = Column(Text, nullable=True)
     new_value = Column(Text, nullable=True)
     modified_by = Column(String(64), default="user")
-    modified_at = Column(DateTime, default=datetime.datetime.utcnow)
+    modified_at = Column(DateTime, default=utcnow)
 
     document = relationship("Document", back_populates="audit_logs")
 
@@ -93,6 +98,25 @@ class CrossVerification(Base):
     status = Column(String(32), default="MATCHED")  # MATCHED, PARTIAL_MATCH, MISMATCHED
     discrepancies = Column(JSON, default=list)
     summary = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
     user = relationship("User", back_populates="cross_verifications")
+
+class ProcessingJob(Base):
+    __tablename__ = "processing_jobs"
+
+    id = Column(String(36), primary_key=True, index=True)
+    document_id = Column(String(36), ForeignKey("documents.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
+    status = Column(String(32), default="pending", index=True)  # pending, processing, completed, failed, cancelled
+    progress_percentage = Column(Integer, default=0)
+    current_step = Column(String(128), default="Queued")
+    error = Column(Text, nullable=True)
+    retry_count = Column(Integer, default=0)
+    max_retries = Column(Integer, default=3)
+    is_dead_letter = Column(Boolean, default=False, index=True)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+    document = relationship("Document", back_populates="jobs")
+    user = relationship("User", back_populates="jobs")

@@ -40,6 +40,21 @@ export interface DocumentItem {
   created_at: string;
 }
 
+export interface PaginatedDocuments {
+  items: DocumentItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface SignedUrlInfo {
+  document_id: string;
+  preview_url: string;
+  download_url: string;
+  expires_in_seconds: number;
+}
+
 export interface DocumentDetail extends DocumentItem {
   error_message?: string | null;
   structured_data?: StructuredInvoiceData | null;

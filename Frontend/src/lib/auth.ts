@@ -9,6 +9,7 @@ export interface UserProfile {
 
 export const AuthStorage = {
   TOKEN_KEY: 'omnidoc_token',
+  REFRESH_TOKEN_KEY: 'omnidoc_refresh_token',
   USER_KEY: 'omnidoc_user',
 
   getToken(): string | null {
@@ -16,10 +17,33 @@ export const AuthStorage = {
     return localStorage.getItem(this.TOKEN_KEY);
   },
 
-  setAuth(token: string, user: UserProfile) {
+  getRefreshToken(): string | null {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem(this.REFRESH_TOKEN_KEY);
+  },
+
+  setAuth(token: string, arg2: string | null | UserProfile, arg3?: UserProfile) {
     if (typeof window === 'undefined') return;
     localStorage.setItem(this.TOKEN_KEY, token);
-    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+
+    if (typeof arg2 === 'string') {
+      localStorage.setItem(this.REFRESH_TOKEN_KEY, arg2);
+      if (arg3) {
+        localStorage.setItem(this.USER_KEY, JSON.stringify(arg3));
+      }
+    } else if (arg2 === null && arg3) {
+      if (arg3) {
+        localStorage.setItem(this.USER_KEY, JSON.stringify(arg3));
+      }
+    } else if (arg2 && typeof arg2 === 'object') {
+      // 2-argument call: setAuth(token, user)
+      localStorage.setItem(this.USER_KEY, JSON.stringify(arg2));
+    }
+  },
+
+  updateAccessToken(newToken: string) {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(this.TOKEN_KEY, newToken);
   },
 
   getUser(): UserProfile | null {
@@ -36,6 +60,7 @@ export const AuthStorage = {
   clear() {
     if (typeof window === 'undefined') return;
     localStorage.removeItem(this.TOKEN_KEY);
+    localStorage.removeItem(this.REFRESH_TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
   }
 };

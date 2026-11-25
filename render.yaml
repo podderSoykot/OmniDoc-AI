@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: omnidoc-backend
+    runtime: docker
+    rootDir: Backend
+    dockerfilePath: Dockerfile
+    plan: free
+    region: frankfurt
+    healthCheckPath: /docs
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: LLM_PROVIDER
+        value: gemini
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false

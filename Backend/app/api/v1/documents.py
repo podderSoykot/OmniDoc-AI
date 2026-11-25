@@ -1,9 +1,11 @@
 import uuid
 import shutil
+import math
+import mimetypes
 from pathlib import Path
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Union
 from pydantic import BaseModel
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, BackgroundTasks, Query
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, BackgroundTasks, Query, Response, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from app.core.config import settings
@@ -11,12 +13,13 @@ from app.core.database import get_db
 from app.core.logging_config import logger
 from app.models.document import Document, DocumentExtraction, ValidationResult, AuditLog, CrossVerification, User
 from app.models.schemas import (
-    DocumentDetailResponse, DocumentListItemResponse,
-    ValidationReport, ManualCorrectionRequest, InvoiceExtractionSchema
+    DocumentDetailResponse, DocumentListItemResponse, PaginatedDocumentResponse,
+    ValidationReport, ManualCorrectionRequest, InvoiceExtractionSchema, SignedUrlResponse
 )
 from app.services.queue.job_manager import JobManager
 from app.services.validation.validator import DocumentValidator
-from app.core.auth import get_current_user
+from app.services.security.file_scanner import FileSecurityScanner
+from app.core.auth import get_current_user, get_current_user_optional, AuthService
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
@@ -29,36 +32,75 @@ async def upload_documents(
 ):
     """
     Accepts multiple documents (PDF, JPG, PNG, TIFF, XLSX, XLS, CSV).
-    Saves files and queues background processing jobs.
+    Enforces upload size limit and MIME / magic-byte security scanning.
     Strictly isolated per authenticated user.
     """
+    if not files:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No files provided for upload.")
+
     enqueued_jobs = []
 
     for file in files:
+        # 1. Metadata and extension checks
+        FileSecurityScanner.validate_file_metadata(file.filename, 0)
+        
         doc_id = str(uuid.uuid4())
         job_id = str(uuid.uuid4())
         file_ext = Path(file.filename).suffix.lower()
         saved_filename = f"{doc_id}{file_ext}"
         saved_path = settings.UPLOAD_DIR / saved_filename
 
+        # 2. Stream to disk and enforce size limit
+        total_size = 0
+        max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
         with open(saved_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+            while True:
+                chunk = await file.read(1024 * 64)  # 64KB chunks
+                if not chunk:
+                    break
+                total_size += len(chunk)
+                if total_size > max_bytes:
+                    buffer.close()
+                    try:
+                        saved_path.unlink()
+                    except Exception:
+                        pass
+                    raise HTTPException(
+                        status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                        detail=f"File '{file.filename}' exceeds maximum allowed limit of {settings.MAX_UPLOAD_SIZE_MB}MB."
+                    )
+                buffer.write(chunk)
 
-        file_size = saved_path.stat().st_size
+        # 3. Security content scan (magic bytes & anti-malware binary checks)
+        try:
+            FileSecurityScanner.scan_file_content(saved_path, file_ext)
+        except HTTPException:
+            raise
+        except Exception as scan_err:
+            try:
+                saved_path.unlink()
+            except Exception:
+                pass
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"File validation failed: {str(scan_err)}"
+            )
+
+        # 4. Save to Database
         new_doc = Document(
             id=doc_id,
             user_id=current_user.id,
             filename=file.filename,
             file_path=str(saved_path),
             file_type="unknown",
-            file_size_bytes=file_size,
+            file_size_bytes=total_size,
             status="pending"
         )
         db.add(new_doc)
         db.commit()
 
-        # Initialize and queue job
-        JobManager.create_job(job_id, doc_id)
+        # 5. Initialize job and enqueue background worker
+        JobManager.create_job(job_id, doc_id, user_id=current_user.id)
         background_tasks.add_task(JobManager.process_document_job, job_id, doc_id, str(saved_path))
 
         enqueued_jobs.append({
@@ -69,22 +111,53 @@ async def upload_documents(
 
     return {"uploaded_count": len(enqueued_jobs), "jobs": enqueued_jobs}
 
-@router.get("", response_model=List[DocumentListItemResponse])
+@router.get("", response_model=Union[PaginatedDocumentResponse, List[DocumentListItemResponse]])
 def list_documents(
+    response: Response,
+    page: Optional[int] = Query(None, ge=1, description="Page number for pagination"),
+    page_size: Optional[int] = Query(None, ge=1, le=100, description="Items per page"),
     limit: int = 50,
     offset: int = 0,
+    review_status: Optional[str] = Query(None),
+    file_type: Optional[str] = Query(None),
+    paginate: bool = Query(False, description="Whether to wrap response in PaginatedDocumentResponse object"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     query = db.query(Document).filter(Document.user_id == current_user.id)
-    
-    docs = query.order_by(Document.created_at.desc()).limit(limit).offset(offset).all()
+
+    if file_type:
+        query = query.filter(Document.file_type == file_type)
+    if review_status:
+        query = query.join(ValidationResult).filter(ValidationResult.review_status == review_status)
+
+    total_count = query.count()
+
+    # Determine pagination windows
+    if page is not None and page_size is not None:
+        effective_limit = page_size
+        effective_offset = (page - 1) * page_size
+        current_page = page
+    else:
+        effective_limit = limit
+        effective_offset = offset
+        current_page = (offset // max(1, limit)) + 1
+        page_size = limit
+
+    total_pages = max(1, math.ceil(total_count / max(1, effective_limit)))
+
+    # Set pagination headers for standard REST clients
+    response.headers["X-Total-Count"] = str(total_count)
+    response.headers["X-Page"] = str(current_page)
+    response.headers["X-Page-Size"] = str(effective_limit)
+    response.headers["X-Total-Pages"] = str(total_pages)
+
+    docs = query.order_by(Document.created_at.desc()).limit(effective_limit).offset(effective_offset).all()
     results = []
     for d in docs:
         struct = d.extraction.structured_data if d.extraction else {}
         rev_status = d.validation.review_status if d.validation else "PENDING"
 
-        # Calculate Grand Total (for invoices and spreadsheets)
         total_val = None
         if struct:
             if struct.get("total") is not None:
@@ -127,6 +200,16 @@ def list_documents(
             supplier_name=supplier,
             created_at=d.created_at
         ))
+
+    if paginate:
+        return PaginatedDocumentResponse(
+            items=results,
+            total=total_count,
+            page=current_page,
+            page_size=effective_limit,
+            total_pages=total_pages
+        )
+
     return results
 
 @router.get("/{document_id}", response_model=DocumentDetailResponse)
@@ -149,7 +232,6 @@ def get_document_details(
             warnings=doc.validation.warnings or []
         )
 
-    # Resolve spreadsheet sheets if applicable
     is_spreadsheet = doc.file_type in ("excel", "csv")
     sheets_data = None
     if doc.extraction and doc.extraction.structured_data:
@@ -157,7 +239,6 @@ def get_document_details(
         if doc.extraction.structured_data.get("is_spreadsheet"):
             is_spreadsheet = True
 
-    # If spreadsheet needs migration or has not persisted sheets/summaries yet
     needs_refresh = (
         is_spreadsheet and (
             not sheets_data or 
@@ -220,19 +301,87 @@ def get_document_details(
         raw_text=doc.extraction.raw_text if doc.extraction else None
     )
 
-@router.get("/{document_id}/download")
-def download_document(
-    document_id: str, 
+@router.get("/{document_id}/signed-url", response_model=SignedUrlResponse)
+def get_signed_file_url(
+    document_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    """Generates time-bound, cryptographically signed URLs for preview and download."""
     doc = db.query(Document).filter(Document.id == document_id, Document.user_id == current_user.id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found or access denied")
+
+    signed_token = AuthService.generate_signed_file_token(document_id, current_user.id, expires_seconds=3600)
+    preview_url = f"{settings.API_V1_PREFIX}/documents/{document_id}/preview?token={signed_token}"
+    download_url = f"{settings.API_V1_PREFIX}/documents/{document_id}/download?token={signed_token}"
+
+    return SignedUrlResponse(
+        document_id=document_id,
+        preview_url=preview_url,
+        download_url=download_url,
+        expires_in_seconds=3600
+    )
+
+def _authorize_file_access(document_id: str, token: Optional[str], current_user: Optional[User], db: Session) -> Document:
+    doc = db.query(Document).filter(Document.id == document_id).first()
     if not doc or not Path(doc.file_path).exists():
-        raise HTTPException(status_code=404, detail="Document file not found on disk or access denied")
+        raise HTTPException(status_code=404, detail="Document file not found on disk.")
+
+    authorized_user_id = None
+    if current_user:
+        authorized_user_id = current_user.id
+    elif token:
+        authorized_user_id = AuthService.verify_signed_file_token(token, document_id)
+
+    if not authorized_user_id or (doc.user_id and doc.user_id != authorized_user_id):
+        raise HTTPException(status_code=403, detail="Unauthorized access to document file.")
+
+    return doc
+
+@router.get("/{document_id}/preview")
+def preview_document(
+    document_id: str,
+    token: Optional[str] = Query(None, description="Signed temporary file token"),
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """
+    Renders document directly in the browser (PDF, images, etc.) using inline disposition.
+    Supports either Bearer authentication or signed URL token.
+    """
+    doc = _authorize_file_access(document_id, token, current_user, db)
+    media_type, _ = mimetypes.guess_type(doc.file_path)
+    if not media_type:
+        if doc.file_path.endswith(".pdf"):
+            media_type = "application/pdf"
+        else:
+            media_type = "application/octet-stream"
+
     return FileResponse(
         path=doc.file_path,
         filename=doc.filename,
-        media_type="application/octet-stream"
+        media_type=media_type,
+        content_disposition_type="inline"
+    )
+
+@router.get("/{document_id}/download")
+def download_document(
+    document_id: str, 
+    token: Optional[str] = Query(None, description="Signed temporary file token"),
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """
+    Downloads document file with attachment disposition.
+    Supports either Bearer authentication or signed URL token.
+    """
+    doc = _authorize_file_access(document_id, token, current_user, db)
+    return FileResponse(
+        path=doc.file_path,
+        filename=doc.filename,
+        media_type="application/octet-stream",
+        content_disposition_type="attachment"
     )
 
 @router.put("/{document_id}/corrections")
@@ -243,8 +392,33 @@ def update_manual_correction(
     current_user: User = Depends(get_current_user)
 ):
     doc = db.query(Document).filter(Document.id == document_id, Document.user_id == current_user.id).first()
-    if not doc or not doc.extraction:
-        raise HTTPException(status_code=404, detail="Document or extraction record not found")
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found or access denied")
+
+    if not doc.extraction:
+        doc.extraction = DocumentExtraction(
+            document_id=document_id,
+            raw_text="",
+            structured_data={},
+            confidence_scores={},
+            processing_time_ms=0.0
+        )
+        db.add(doc.extraction)
+        db.commit()
+        db.refresh(doc)
+
+    if not doc.validation:
+        doc.validation = ValidationResult(
+            document_id=document_id,
+            is_valid=True,
+            review_status="PASSED",
+            math_errors=[],
+            business_errors=[],
+            warnings=[]
+        )
+        db.add(doc.validation)
+        db.commit()
+        db.refresh(doc)
 
     old_data = doc.extraction.structured_data or {}
     new_data = correction.structured_data
@@ -353,7 +527,6 @@ def delete_document(
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found or access denied")
 
-    # Remove physical file on disk if exists
     try:
         fpath = Path(doc.file_path)
         if fpath.exists():
@@ -361,13 +534,11 @@ def delete_document(
     except Exception as e:
         logger.warning(f"Could not remove physical file for {document_id}: {e}")
 
-    # Remove cross-verifications associated with this document
     db.query(CrossVerification).filter(
         (CrossVerification.source_doc_id == document_id) |
         (CrossVerification.target_doc_id == document_id)
     ).delete(synchronize_session=False)
 
-    # Delete Document (cascades to extraction, validation, audit_logs)
     db.delete(doc)
     db.commit()
 

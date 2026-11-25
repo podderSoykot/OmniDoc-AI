@@ -1,32 +1,23 @@
-import uuid
-import pytest
-from fastapi.testclient import TestClient
 from pathlib import Path
-from app.main import app
 
-client = TestClient(app)
-SAMPLE_DIR = Path(__file__).parent.parent / "sample_data"
-
-def get_auth_headers():
-    unique_email = f"test_{uuid.uuid4().hex[:8]}@example.com"
-    res = client.post("/api/v1/auth/signup", json={
-        "email": unique_email,
-        "password": "Password123!",
-        "full_name": "API Test User"
-    })
-    token = res.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
-
-def test_health_endpoint():
+def test_health_endpoint(client):
     res = client.get("/health")
     assert res.status_code == 200
-    assert res.json()["status"] == "healthy"
+    data = res.json()
+    assert data["status"] == "healthy"
+    assert "components" in data
+    assert "database" in data["components"]
+    assert "tesseract_ocr" in data["components"]
 
-def test_upload_and_pipeline_flow():
-    headers = get_auth_headers()
-    pdf_path = SAMPLE_DIR / "valid_invoice.pdf"
+def test_upload_and_pipeline_flow(client, auth_headers, sample_dir):
+    headers = {"Authorization": auth_headers["Authorization"]}
+    pdf_path = sample_dir / "valid_invoice.pdf"
     with open(pdf_path, "rb") as f:
-        res = client.post("/api/v1/documents/upload", headers=headers, files={"files": ("valid_invoice.pdf", f, "application/pdf")})
+        res = client.post(
+            "/api/v1/documents/upload",
+            headers=headers,
+            files={"files": ("valid_invoice.pdf", f, "application/pdf")}
+        )
 
     assert res.status_code == 200
     data = res.json()
