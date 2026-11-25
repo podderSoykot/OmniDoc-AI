@@ -434,3 +434,22 @@ CRITICAL INSTRUCTIONS:
 
 - **Deterministic Fallback**: If an LLM is offline or no API key is configured, the built-in regex and heuristic layout engine provides zero-latency extraction.
 - **Math Integrity Enforcer**: Extracted subtotal, tax, and total values are validated via $\text{Subtotal} + \text{Tax} = \text{Total}$. Mathematical anomalies are caught and flagged for manual audit.
+
+---
+
+## 9. Submission Deliverables Verification Matrix
+
+This matrix maps each requirement specified in `Ai Engineer Task 1.3.pdf` to its implementation:
+
+| # | Task Requirement | Implementation & Repository Location | Status |
+|---|---|---|:---:|
+| **1** | **Git Repository with Source Code** | [GitHub: podderSoykot/OmniDoc-AI](https://github.com/podderSoykot/OmniDoc-AI) (Branches: `main`, `dev-soykot`) | ✅ **Verified** |
+| **2** | **README & Setup Instructions** | [`README.md`](README.md) (Step-by-step local setup, Docker Compose, & Cloud Deploy) | ✅ **Verified** |
+| **3** | **Architecture Diagram & Database Schema** | [Section 1: Architecture](README.md#1-system-design-architecture) & [Section 2: Database Schema ERD](README.md#2-database-schema-entity-relationship-model) | ✅ **Verified** |
+| **4** | **Working Backend API & Frontend** | **Frontend App**: [https://omnidoc-frontend-mauve.vercel.app](https://omnidoc-frontend-mauve.vercel.app)<br>**Backend API**: [https://omnidoc-ai-backend-9oin.onrender.com](https://omnidoc-ai-backend-9oin.onrender.com)<br>**Swagger UI Docs**: [https://omnidoc-ai-backend-9oin.onrender.com/docs](https://omnidoc-ai-backend-9oin.onrender.com/docs) | ✅ **Verified** |
+| **5** | **PDF, Image, Excel, and CSV Pipelines** | **PDF**: [`pdf_parser.py`](Backend/app/services/ingestion/pdf_parser.py) (PyMuPDF streaming, 1000+ pgs)<br>**OCR**: [`ocr_engine.py`](Backend/app/services/ingestion/ocr_engine.py) (OpenCV + Tesseract 5.5)<br>**Spreadsheets**: [`excel_parser.py`](Backend/app/services/ingestion/excel_parser.py) (pandas + openpyxl)<br>**Cross-Verification**: [`cross_verification/`](Backend/app/services/cross_verification/) | ✅ **Verified** |
+| **6** | **Automated Tests & Test Results** | **Backend**: 27/27 Passed (`pytest Backend/tests/`)<br>**Frontend**: 5/5 Passed (`vitest Frontend/`)<br>Documented in [Section 6: Testing Benchmarks](README.md#6-automated-testing--verification-benchmarks) | ✅ **Verified** |
+| **7** | **Evaluation Report with Measured Metrics** | [`EVALUATION_REPORT.md`](EVALUATION_REPORT.md) (100% accuracy, 0% failure rate, 198.7ms latency, field-level F1 breakdown) | ✅ **Verified** |
+| **8** | **Recorded / Visual Application Walkthrough** | [`APP_USER_GUIDE.md`](APP_USER_GUIDE.md) (Illustrated 10-screen visual guide, verified screenshots in [`docs/screenshots/`](docs/screenshots/)) | ✅ **Verified** |
+| **9** | **AI Prompts & AI Disclosure** | [`prompt_builder.py`](Backend/app/services/extraction/prompt_builder.py) & [Section 8: Anti-Hallucination AI Prompt](README.md#8-anti-hallucination-ai-prompt--disclosure) | ✅ **Verified** |
+
