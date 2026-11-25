@@ -56,3 +56,30 @@ def run_cross_verification(req: CrossVerifyRequest, db: Session = Depends(get_db
     db.commit()
 
     return result
+
+@router.get("/history")
+def get_verification_history(limit: int = 20, db: Session = Depends(get_db)):
+    records = (
+        db.query(CrossVerification)
+        .order_by(CrossVerification.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+    results = []
+    for r in records:
+        src = db.query(Document).filter(Document.id == r.source_doc_id).first()
+        tgt = db.query(Document).filter(Document.id == r.target_doc_id).first()
+        results.append({
+            "id": r.id,
+            "source_doc_id": r.source_doc_id,
+            "target_doc_id": r.target_doc_id,
+            "source_filename": src.filename if src else "Unknown Source",
+            "target_filename": tgt.filename if tgt else "Unknown Target",
+            "verification_type": r.verification_type,
+            "match_score": r.match_score,
+            "status": r.status,
+            "discrepancies": r.discrepancies,
+            "summary": r.summary,
+            "created_at": r.created_at.isoformat()
+        })
+    return results

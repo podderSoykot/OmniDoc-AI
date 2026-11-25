@@ -60,6 +60,13 @@ export default function DashboardPage() {
     fetchDocs();
   };
 
+  const handleBulkDelete = async (ids: string[]) => {
+    await api.bulkDeleteDocuments(ids);
+    setToastMessage(`${ids.length} documents permanently deleted.`);
+    setTimeout(() => setToastMessage(null), 4000);
+    fetchDocs();
+  };
+
   const totalDocs = documents.length;
   const passedDocs = documents.filter((d) => d.review_status === 'PASSED').length;
   const reviewNeeded = documents.filter((d) => d.review_status === 'NEEDS_MANUAL_REVIEW').length;
@@ -209,7 +216,11 @@ export default function DashboardPage() {
           Loading document corpus...
         </div>
       ) : (
-        <DocumentTable documents={documents} onDelete={handleDeleteDocument} />
+        <DocumentTable 
+          documents={documents} 
+          onDelete={handleDeleteDocument} 
+          onBulkDelete={handleBulkDelete}
+        />
       )}
     </div>
   );

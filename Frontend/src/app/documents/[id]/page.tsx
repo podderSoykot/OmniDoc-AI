@@ -11,6 +11,7 @@ import ValidationBadges from '@/components/viewer/ValidationBadges';
 import SpreadsheetViewer from '@/components/viewer/SpreadsheetViewer';
 import SpreadsheetAnalytics from '@/components/viewer/SpreadsheetAnalytics';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import AuditTrailModal from '@/components/viewer/AuditTrailModal';
 import { 
   ArrowLeft, 
   RefreshCw, 
@@ -22,7 +23,8 @@ import {
   Layers,
   Sparkles,
   ShieldCheck,
-  Trash2
+  Trash2,
+  History
 } from 'lucide-react';
 
 export default function DocumentDetailPage() {
@@ -35,6 +37,7 @@ export default function DocumentDetailPage() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showAuditModal, setShowAuditModal] = useState(false);
 
   const fetchDoc = async () => {
     try {
@@ -197,6 +200,15 @@ export default function DocumentDetailPage() {
           </button>
 
           <button
+            onClick={() => setShowAuditModal(true)}
+            className="inline-flex items-center gap-1.5 text-xs font-bold bg-white border border-slate-200 text-slate-700 hover:text-indigo-600 hover:bg-slate-50 px-3.5 py-2 rounded-xl shadow-2xs transition"
+            title="View modification audit trail"
+          >
+            <History className="w-3.5 h-3.5 text-slate-400" />
+            <span>Audit History</span>
+          </button>
+
+          <button
             onClick={fetchDoc}
             className="inline-flex items-center gap-1.5 text-xs font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 px-3.5 py-2 rounded-xl shadow-2xs transition"
           >
@@ -320,6 +332,14 @@ export default function DocumentDetailPage() {
         isLoading={isDeleting}
         onConfirm={handleConfirmDelete}
         onCancel={() => !isDeleting && setShowDeleteModal(false)}
+      />
+
+      {/* Audit Trail Modal */}
+      <AuditTrailModal
+        isOpen={showAuditModal}
+        documentId={doc.id}
+        filename={doc.filename}
+        onClose={() => setShowAuditModal(false)}
       />
     </div>
   );

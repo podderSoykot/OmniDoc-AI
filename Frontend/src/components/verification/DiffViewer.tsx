@@ -9,8 +9,10 @@ import {
   ArrowRight, 
   ShieldCheck, 
   Layers, 
-  FileText,
-  FileSpreadsheet
+  FileText, 
+  FileSpreadsheet,
+  Printer,
+  Download
 } from 'lucide-react';
 
 interface DiffViewerProps {
@@ -21,6 +23,10 @@ export default function DiffViewer({ result }: DiffViewerProps) {
   const isHighMatch = result.match_score >= 80;
   const isPartial = result.match_score >= 50 && result.match_score < 80;
   const isSpreadsheetReconciliation = result.verification_type.includes('excel');
+
+  const handlePrintCertificate = () => {
+    window.print();
+  };
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-6">
@@ -50,6 +56,14 @@ export default function DiffViewer({ result }: DiffViewerProps) {
         </div>
 
         <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/80 p-3 rounded-2xl shrink-0">
+          <button
+            type="button"
+            onClick={handlePrintCertificate}
+            className="p-2.5 rounded-xl bg-white border border-slate-200 hover:border-indigo-300 text-slate-600 hover:text-indigo-600 shadow-2xs transition"
+            title="Export / Print Audit Certificate PDF"
+          >
+            <Printer className="w-4 h-4" />
+          </button>
           <div className="text-right">
             <span
               className={`text-3xl font-black ${

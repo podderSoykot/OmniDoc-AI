@@ -71,5 +71,27 @@ export const api = {
     });
     if (!res.ok) throw new Error('Failed to delete document');
     return res.json();
+  },
+
+  async bulkDeleteDocuments(docIds: string[]): Promise<{ deleted_count: number; document_ids: string[] }> {
+    const res = await fetch(`${API_BASE}/documents/bulk-delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ document_ids: docIds }),
+    });
+    if (!res.ok) throw new Error('Failed to bulk delete documents');
+    return res.json();
+  },
+
+  async getAuditLogs(docId: string): Promise<any[]> {
+    const res = await fetch(`${API_BASE}/documents/${docId}/audit-logs`, { cache: 'no-store' });
+    if (!res.ok) throw new Error('Failed to fetch audit logs');
+    return res.json();
+  },
+
+  async getVerificationHistory(limit: number = 20): Promise<any[]> {
+    const res = await fetch(`${API_BASE}/verification/history?limit=${limit}`, { cache: 'no-store' });
+    if (!res.ok) throw new Error('Failed to fetch verification history');
+    return res.json();
   }
 };

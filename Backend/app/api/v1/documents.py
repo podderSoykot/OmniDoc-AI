@@ -262,6 +262,59 @@ def update_manual_correction(
     db.commit()
     return {"message": "Document corrected and re-validated successfully", "validation": val_report.model_dump()}
 
+@router.get("/{document_id}/audit-logs")
+def get_document_audit_logs(document_id: str, db: Session = Depends(get_db)):
+    doc = db.query(Document).filter(Document.id == document_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    logs = (
+        db.query(AuditLog)
+        .filter(AuditLog.document_id == document_id)
+        .order_by(AuditLog.modified_at.desc())
+        .all()
+    )
+    return [
+        {
+            "id": l.id,
+            "document_id": l.document_id,
+            "field_name": l.field_name,
+            "old_value": l.old_value,
+            "new_value": l.new_value,
+            "modified_by": l.modified_by,
+            "modified_at": l.modified_at.isoformat()
+        }
+        for l in logs
+    ]
+
+@router.post("/bulk-delete")
+def bulk_delete_documents(payload: Dict[str, List[str]], db: Session = Depends(get_db)):
+    doc_ids = payload.get("document_ids", [])
+    if not doc_ids:
+        return {"deleted_count": 0}
+
+    deleted_count = 0
+    for doc_id in doc_ids:
+        doc = db.query(Document).filter(Document.id == doc_id).first()
+        if doc:
+            try:
+                fpath = Path(doc.file_path)
+                if fpath.exists():
+                    fpath.unlink()
+            except Exception:
+                pass
+
+            db.query(CrossVerification).filter(
+                (CrossVerification.source_doc_id == doc_id) |
+                (CrossVerification.target_doc_id == doc_id)
+            ).delete(synchronize_session=False)
+
+            db.delete(doc)
+            deleted_count += 1
+
+    db.commit()
+    return {"deleted_count": deleted_count, "document_ids": doc_ids}
+
 @router.delete("/{document_id}")
 def delete_document(document_id: str, db: Session = Depends(get_db)):
     doc = db.query(Document).filter(Document.id == document_id).first()
