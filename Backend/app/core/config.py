@@ -28,10 +28,11 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60  # 1 hour access token
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7     # 7 days refresh token
     
-    # CORS (default to local frontend origins, configurable via CORS_ORIGINS)
+    # CORS (default to local and Vercel frontend origins, configurable via CORS_ORIGINS)
     ALLOWED_ORIGINS: List[str] = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "https://omnidoc-frontend-mauve.vercel.app",
     ]
     
     # LLM Settings

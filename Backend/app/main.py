@@ -55,10 +55,11 @@ async def request_tracing_middleware(request: Request, call_next):
             headers={"X-Request-ID": request_id}
         )
 
-# CORS Middleware with explicit origins
+# CORS Middleware with explicit origins and Vercel domains
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
