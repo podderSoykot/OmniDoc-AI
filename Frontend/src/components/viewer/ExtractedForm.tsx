@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StructuredInvoiceData, LineItem } from '@/lib/types';
-import { Save, Plus, Trash2 } from 'lucide-react';
+import { Save, Plus, Trash2, CheckCircle2 } from 'lucide-react';
 
 interface ExtractedFormProps {
   data: StructuredInvoiceData;
@@ -47,129 +47,139 @@ export default function ExtractedForm({ data, confidences, onSave, isSaving }: E
     const score = confidences?.[field];
     if (score === undefined) return null;
     const pct = Math.round(score * 100);
-    const color = pct >= 80 ? 'text-emerald-600 bg-emerald-50' : pct >= 50 ? 'text-amber-600 bg-amber-50' : 'text-rose-600 bg-rose-50';
-    return <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${color}`}>{pct}% conf</span>;
+    const color = pct >= 80 ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : pct >= 50 ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-rose-700 bg-rose-50 border-rose-200';
+    return <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${color}`}>{pct}% conf</span>;
   };
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4">
+    <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-5">
       <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-        <h3 className="text-base font-bold text-slate-800">Extracted Invoice Details</h3>
+        <div>
+          <h3 className="text-sm font-black text-slate-900 tracking-tight">Structured Invoice Fields</h3>
+          <p className="text-[11px] text-slate-400">Zero-hallucination extraction with field-level confidence ratings</p>
+        </div>
         <button
           onClick={() => onSave(formData)}
           disabled={isSaving}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-lg transition disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl shadow-sm transition disabled:opacity-50"
         >
-          <Save className="w-3.5 h-3.5" /> {isSaving ? 'Saving...' : 'Save & Re-Validate'}
+          <Save className="w-3.5 h-3.5" /> {isSaving ? 'Re-Validating...' : 'Save & Re-Validate'}
         </button>
       </div>
 
+      {/* Main Metadata Grid */}
       <div className="grid grid-cols-2 gap-3 text-xs">
         <div>
-          <label className="font-semibold text-slate-600 flex items-center justify-between mb-1">
-            Invoice Number {confBadge('invoice_number')}
+          <label className="font-bold text-slate-600 flex items-center justify-between mb-1">
+            <span>Invoice Number</span> {confBadge('invoice_number')}
           </label>
           <input
             type="text"
             value={formData.invoice_number || ''}
             onChange={(e) => handleChange('invoice_number', e.target.value)}
-            className="w-full border border-slate-200 rounded-lg p-2 focus:ring-1 focus:ring-indigo-500 font-medium text-slate-800"
+            className="w-full border border-slate-200 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-semibold text-slate-800 bg-slate-50/50 focus:bg-white transition"
           />
         </div>
         <div>
-          <label className="font-semibold text-slate-600 flex items-center justify-between mb-1">
-            Invoice Date {confBadge('invoice_date')}
+          <label className="font-bold text-slate-600 flex items-center justify-between mb-1">
+            <span>Invoice Date</span> {confBadge('invoice_date')}
           </label>
           <input
             type="text"
             value={formData.invoice_date || ''}
             onChange={(e) => handleChange('invoice_date', e.target.value)}
-            className="w-full border border-slate-200 rounded-lg p-2 focus:ring-1 focus:ring-indigo-500 font-medium text-slate-800"
+            className="w-full border border-slate-200 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-semibold text-slate-800 bg-slate-50/50 focus:bg-white transition"
           />
         </div>
         <div>
-          <label className="font-semibold text-slate-600 flex items-center justify-between mb-1">
-            Supplier Name {confBadge('supplier_name')}
+          <label className="font-bold text-slate-600 flex items-center justify-between mb-1">
+            <span>Supplier / Vendor</span> {confBadge('supplier_name')}
           </label>
           <input
             type="text"
             value={formData.supplier_name || ''}
             onChange={(e) => handleChange('supplier_name', e.target.value)}
-            className="w-full border border-slate-200 rounded-lg p-2 focus:ring-1 focus:ring-indigo-500 font-medium text-slate-800"
+            className="w-full border border-slate-200 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-semibold text-slate-800 bg-slate-50/50 focus:bg-white transition"
           />
         </div>
         <div>
-          <label className="font-semibold text-slate-600 flex items-center justify-between mb-1">
-            Customer Name {confBadge('customer_name')}
+          <label className="font-bold text-slate-600 flex items-center justify-between mb-1">
+            <span>Customer Name</span> {confBadge('customer_name')}
           </label>
           <input
             type="text"
             value={formData.customer_name || ''}
             onChange={(e) => handleChange('customer_name', e.target.value)}
-            className="w-full border border-slate-200 rounded-lg p-2 focus:ring-1 focus:ring-indigo-500 font-medium text-slate-800"
+            className="w-full border border-slate-200 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-semibold text-slate-800 bg-slate-50/50 focus:bg-white transition"
           />
         </div>
       </div>
 
-      {/* Totals */}
-      <div className="grid grid-cols-3 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs">
+      {/* Totals Summary */}
+      <div className="grid grid-cols-3 gap-3 bg-gradient-to-r from-slate-50 via-indigo-50/20 to-slate-50 p-3.5 rounded-2xl border border-slate-200/80 text-xs">
         <div>
-          <label className="font-semibold text-slate-600 block mb-1">Subtotal</label>
+          <label className="font-bold text-slate-500 block mb-1">Subtotal</label>
           <input
             type="number"
             step="0.01"
             value={formData.subtotal ?? ''}
             onChange={(e) => handleChange('subtotal', parseFloat(e.target.value) || 0)}
-            className="w-full border border-slate-200 rounded p-1.5 font-bold text-slate-800 bg-white"
+            className="w-full border border-slate-200 rounded-lg p-2 font-bold text-slate-800 bg-white shadow-2xs"
           />
         </div>
         <div>
-          <label className="font-semibold text-slate-600 block mb-1">Tax</label>
+          <label className="font-bold text-slate-500 block mb-1">Tax / VAT</label>
           <input
             type="number"
             step="0.01"
             value={formData.tax ?? ''}
             onChange={(e) => handleChange('tax', parseFloat(e.target.value) || 0)}
-            className="w-full border border-slate-200 rounded p-1.5 font-bold text-slate-800 bg-white"
+            className="w-full border border-slate-200 rounded-lg p-2 font-bold text-slate-800 bg-white shadow-2xs"
           />
         </div>
         <div>
-          <label className="font-semibold text-slate-600 block mb-1">Grand Total</label>
+          <label className="font-bold text-indigo-700 block mb-1">Total Amount</label>
           <input
             type="number"
             step="0.01"
             value={formData.total ?? ''}
             onChange={(e) => handleChange('total', parseFloat(e.target.value) || 0)}
-            className="w-full border border-indigo-200 rounded p-1.5 font-black text-indigo-700 bg-indigo-50/50"
+            className="w-full border border-indigo-300 rounded-lg p-2 font-black text-indigo-700 bg-indigo-50/60 shadow-2xs"
           />
         </div>
       </div>
 
-      {/* Line Items */}
+      {/* Line Items Table */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <h4 className="text-xs font-bold uppercase text-slate-600">Line Items ({formData.line_items.length})</h4>
-          <button type="button" onClick={addLineItem} className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
-            <Plus className="w-3.5 h-3.5" /> Add Item
+          <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-600">
+            Line Items ({formData.line_items.length})
+          </h4>
+          <button
+            type="button"
+            onClick={addLineItem}
+            className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 transition"
+          >
+            <Plus className="w-3.5 h-3.5" /> Add Row
           </button>
         </div>
 
         <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
           {formData.line_items.map((item, idx) => (
-            <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-slate-50 p-2 rounded border border-slate-100 text-xs">
+            <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-slate-50/80 p-2.5 rounded-xl border border-slate-200/60 text-xs">
               <input
                 type="text"
-                placeholder="Description"
+                placeholder="Item description"
                 value={item.description}
                 onChange={(e) => handleLineItemChange(idx, 'description', e.target.value)}
-                className="col-span-5 border border-slate-200 rounded p-1.5 bg-white"
+                className="col-span-5 border border-slate-200 rounded-lg p-2 bg-white font-medium"
               />
               <input
                 type="number"
                 placeholder="Qty"
                 value={item.quantity}
                 onChange={(e) => handleLineItemChange(idx, 'quantity', parseFloat(e.target.value) || 0)}
-                className="col-span-2 border border-slate-200 rounded p-1.5 bg-white"
+                className="col-span-2 border border-slate-200 rounded-lg p-2 bg-white font-medium text-center"
               />
               <input
                 type="number"
@@ -177,12 +187,16 @@ export default function ExtractedForm({ data, confidences, onSave, isSaving }: E
                 placeholder="Price"
                 value={item.unit_price}
                 onChange={(e) => handleLineItemChange(idx, 'unit_price', parseFloat(e.target.value) || 0)}
-                className="col-span-2 border border-slate-200 rounded p-1.5 bg-white"
+                className="col-span-2 border border-slate-200 rounded-lg p-2 bg-white font-medium text-center"
               />
               <div className="col-span-2 font-bold text-slate-800 text-right pr-1">
-                ${item.amount.toFixed(2)}
+                ${Number(item.amount).toFixed(2)}
               </div>
-              <button type="button" onClick={() => removeLineItem(idx)} className="col-span-1 text-slate-400 hover:text-rose-500">
+              <button
+                type="button"
+                onClick={() => removeLineItem(idx)}
+                className="col-span-1 text-slate-400 hover:text-rose-500 transition p-1"
+              >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
