@@ -2,15 +2,20 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.models.document import Document, CrossVerification
+from app.models.document import Document, CrossVerification, User
 from app.models.schemas import CrossVerifyRequest, CrossVerifyResponse
 from app.services.cross_verification.verifier import CrossVerificationOrchestrator
 from app.services.ingestion.excel_parser import ExcelParser
+from app.core.auth import get_current_user_optional
 
 router = APIRouter(prefix="/verification", tags=["Cross Verification"])
 
 @router.post("/cross-check", response_model=CrossVerifyResponse)
-def run_cross_verification(req: CrossVerifyRequest, db: Session = Depends(get_db)):
+def run_cross_verification(
+    req: CrossVerifyRequest, 
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
     src_doc = db.query(Document).filter(Document.id == req.source_document_id).first()
     tgt_doc = db.query(Document).filter(Document.id == req.target_document_id).first()
 
@@ -44,6 +49,7 @@ def run_cross_verification(req: CrossVerifyRequest, db: Session = Depends(get_db
     # Persist verification result
     rec = CrossVerification(
         id=result.id,
+        user_id=current_user.id if current_user else None,
         source_doc_id=result.source_doc_id,
         target_doc_id=result.target_doc_id,
         verification_type=result.verification_type,
@@ -58,9 +64,17 @@ def run_cross_verification(req: CrossVerifyRequest, db: Session = Depends(get_db
     return result
 
 @router.get("/history")
-def get_verification_history(limit: int = 20, db: Session = Depends(get_db)):
+def get_verification_history(
+    limit: int = 20, 
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    query = db.query(CrossVerification)
+    if current_user:
+        query = query.filter(CrossVerification.user_id == current_user.id)
+
     records = (
-        db.query(CrossVerification)
+        query
         .order_by(CrossVerification.created_at.desc())
         .limit(limit)
         .all()

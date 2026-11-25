@@ -6,10 +6,25 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(String(36), primary_key=True, index=True)
+    email = Column(String(255), unique=True, index=True, nullable=False)
+    hashed_password = Column(String(255), nullable=False)
+    full_name = Column(String(255), nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    # Multi-tenant document ownership
+    documents = relationship("Document", back_populates="user", cascade="all, delete-orphan")
+    cross_verifications = relationship("CrossVerification", back_populates="user", cascade="all, delete-orphan")
+
 class Document(Base):
     __tablename__ = "documents"
 
     id = Column(String(36), primary_key=True, index=True)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
     filename = Column(String(255), nullable=False)
     file_path = Column(String(512), nullable=False)
     file_type = Column(String(32), nullable=False)  # pdf, image, excel, csv
@@ -21,6 +36,7 @@ class Document(Base):
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
     # Relationships
+    user = relationship("User", back_populates="documents")
     extraction = relationship("DocumentExtraction", back_populates="document", uselist=False, cascade="all, delete-orphan")
     validation = relationship("ValidationResult", back_populates="document", uselist=False, cascade="all, delete-orphan")
     audit_logs = relationship("AuditLog", back_populates="document", cascade="all, delete-orphan")
@@ -69,6 +85,7 @@ class CrossVerification(Base):
     __tablename__ = "cross_verifications"
 
     id = Column(String(36), primary_key=True, index=True)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
     source_doc_id = Column(String(36), ForeignKey("documents.id", ondelete="CASCADE"))
     target_doc_id = Column(String(36), ForeignKey("documents.id", ondelete="CASCADE"))
     verification_type = Column(String(32), nullable=False)  # pdf_pdf or pdf_excel
@@ -77,3 +94,5 @@ class CrossVerification(Base):
     discrepancies = Column(JSON, default=list)
     summary = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    user = relationship("User", back_populates="cross_verifications")

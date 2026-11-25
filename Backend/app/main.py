@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.core.database import engine, Base
 from app.core.logging_config import setup_logging
-from app.api.v1 import documents, jobs, verification, search
+from app.api.v1 import documents, jobs, verification, search, auth
 
 # Initialize logging
 setup_logging()
@@ -33,6 +33,7 @@ app.add_middleware(
 app.mount("/files", StaticFiles(directory=str(settings.UPLOAD_DIR)), name="files")
 
 # Register API v1 Routers
+app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
 app.include_router(documents.router, prefix=settings.API_V1_PREFIX)
 app.include_router(jobs.router, prefix=settings.API_V1_PREFIX)
 app.include_router(verification.router, prefix=settings.API_V1_PREFIX)

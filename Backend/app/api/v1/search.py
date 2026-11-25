@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.schemas import DocumentListItemResponse
 from app.services.search.search_service import SearchService
+from app.core.auth import get_current_user_optional
+from app.models.document import User
 
 router = APIRouter(prefix="/search", tags=["Search"])
 
@@ -14,13 +16,16 @@ def search_documents(
     file_type: Optional[str] = Query(None, description="Filter by file type: pdf, image, excel, csv"),
     limit: int = 50,
     offset: int = 0,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
+    user_id = current_user.id if current_user else None
     return SearchService.search_documents(
         db=db,
         query=q,
         review_status=review_status,
         file_type=file_type,
         limit=limit,
-        offset=offset
+        offset=offset,
+        user_id=user_id
     )

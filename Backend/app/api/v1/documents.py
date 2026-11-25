@@ -1,20 +1,22 @@
 import uuid
 import shutil
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, BackgroundTasks, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.logging_config import logger
-from app.models.document import Document, DocumentExtraction, ValidationResult, AuditLog, CrossVerification
+from app.models.document import Document, DocumentExtraction, ValidationResult, AuditLog, CrossVerification, User
 from app.models.schemas import (
     DocumentDetailResponse, DocumentListItemResponse,
     ValidationReport, ManualCorrectionRequest, InvoiceExtractionSchema
 )
 from app.services.queue.job_manager import JobManager
 from app.services.validation.validator import DocumentValidator
+from app.core.auth import get_current_user_optional
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
@@ -22,11 +24,13 @@ router = APIRouter(prefix="/documents", tags=["Documents"])
 async def upload_documents(
     background_tasks: BackgroundTasks,
     files: List[UploadFile] = File(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     """
     Accepts multiple documents (PDF, JPG, PNG, TIFF, XLSX, XLS, CSV).
     Saves files and queues background processing jobs.
+    Attaches user_id for multi-tenant isolation if authenticated.
     """
     enqueued_jobs = []
 
@@ -43,6 +47,7 @@ async def upload_documents(
         file_size = saved_path.stat().st_size
         new_doc = Document(
             id=doc_id,
+            user_id=current_user.id if current_user else None,
             filename=file.filename,
             file_path=str(saved_path),
             file_type="unknown",
@@ -68,9 +73,14 @@ async def upload_documents(
 def list_documents(
     limit: int = 50,
     offset: int = 0,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
-    docs = db.query(Document).order_by(Document.created_at.desc()).limit(limit).offset(offset).all()
+    query = db.query(Document)
+    if current_user:
+        query = query.filter(Document.user_id == current_user.id)
+    
+    docs = query.order_by(Document.created_at.desc()).limit(limit).offset(offset).all()
     results = []
     for d in docs:
         struct = d.extraction.structured_data if d.extraction else {}
@@ -287,9 +297,12 @@ def get_document_audit_logs(document_id: str, db: Session = Depends(get_db)):
         for l in logs
     ]
 
+class BulkDeleteRequest(BaseModel):
+    document_ids: List[str]
+
 @router.post("/bulk-delete")
-def bulk_delete_documents(payload: Dict[str, List[str]], db: Session = Depends(get_db)):
-    doc_ids = payload.get("document_ids", [])
+def bulk_delete_documents(payload: BulkDeleteRequest, db: Session = Depends(get_db)):
+    doc_ids = payload.document_ids
     if not doc_ids:
         return {"deleted_count": 0}
 

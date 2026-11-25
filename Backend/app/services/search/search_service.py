@@ -11,13 +11,17 @@ class SearchService:
         review_status: Optional[str] = None,
         file_type: Optional[str] = None,
         limit: int = 50,
-        offset: int = 0
+        offset: int = 0,
+        user_id: Optional[str] = None
     ) -> List[DocumentListItemResponse]:
         """
         Executes hybrid filtering: keyword search on filename, supplier, invoice number,
-        and extracted text, plus structured filters.
+        and extracted text, plus structured filters. Isolates per user_id if provided.
         """
         stmt = db.query(Document).outerjoin(DocumentExtraction).outerjoin(ValidationResult)
+
+        if user_id:
+            stmt = stmt.filter(Document.user_id == user_id)
 
         if file_type:
             stmt = stmt.filter(Document.file_type == file_type)
