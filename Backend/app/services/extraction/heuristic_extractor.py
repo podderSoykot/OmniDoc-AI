@@ -52,11 +52,12 @@ class HeuristicExtractor:
         supplier_name = "Unknown Supplier"
         supp_match = re.search(r'(?:supplier|vendor|from|company|issued\s*by)[\s.:-]*([^\n]+)', text, re.I)
         if supp_match and supp_match.group(1).strip().lower() not in ("name", "details", "info", "address"):
-            supplier_name = supp_match.group(1).strip()
+            supplier_name = supp_match.group(1).strip().strip("'\"‘`“”)")
         else:
             for l in content_lines:
-                if l.upper() not in ("INVOICE", "TAX INVOICE", "PURCHASE ORDER", "PO", "RECEIPT", "BILL OF LADING", "STATEMENT"):
-                    supplier_name = l
+                clean_l = l.strip().strip("'\"‘`“”)")
+                if clean_l.upper() not in ("INVOICE", "TAX INVOICE", "PURCHASE ORDER", "PO", "RECEIPT", "BILL OF LADING", "STATEMENT") and len(clean_l) > 2:
+                    supplier_name = clean_l
                     break
 
         customer_match = re.search(r'(?:bill\s*to|customer|client|sold\s*to)[\s.:-]*([^\n]+)', text, re.I)

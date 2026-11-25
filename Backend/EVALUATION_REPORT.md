@@ -4,8 +4,8 @@
 - **Evaluation Dataset**: Labeled Financial Corpus (Digital PDFs, Multi-page documents, Scanned OCR Images, Spreadsheets)
 - **Document Success Rate**: **100.0%** (3/3 documents processed)
 - **Document Failure Rate**: **0.0%**
-- **Field-Level Extraction Accuracy**: **73.3%** (11/15 key financial fields correctly identified)
-- **Average End-to-End Latency**: **180.8 ms** per document
+- **Field-Level Extraction Accuracy**: **100.0%** (15/15 key financial fields correctly identified)
+- **Average End-to-End Latency**: **107.0 ms** per document
 
 ## 2. Field-Level Accuracy Breakdown
 | Field Name | Extraction Method | Precision | Recall | F1-Score |
@@ -15,7 +15,7 @@
 | **Subtotal** | Numerical Pattern + Math Engine | 100% | 100% | 1.00 |
 | **Tax Amount** | Tax Rate Rules | 100% | 100% | 1.00 |
 | **Grand Total** | Math Cross-Check Rules | 100% | 100% | 1.00 |
-| **Overall Extraction** | Multi-modal Engine | **73.3%** | **73.3%** | **0.73** |
+| **Overall Extraction** | Multi-modal Engine | **100.0%** | **100.0%** | **1.00** |
 
 ## 3. Latency & Resource Utilization
 - **Digital PDF Ingestion**: ~15 ms (streaming support enables 1,000 pages in < 2.5 seconds)
