@@ -11,23 +11,24 @@ import {
   Sparkles, 
   Menu, 
   X, 
-  ShieldCheck,
-  FileText,
-  LogOut,
-  UserCheck
+  ShieldCheck, 
+  FileText, 
+  LogOut, 
+  UserCheck,
+  ChevronDown,
+  BarChart3,
+  AlertTriangle,
+  FolderOpen
 } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthGuard';
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [dashboardOpen, setDashboardOpen] = useState(true);
   const { user, logout } = useAuth();
 
-  const navLinks = [
-    { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/upload', label: 'Batch Ingestion', icon: UploadCloud },
-    { href: '/verification', label: 'Cross-Verification', icon: GitCompare },
-  ];
+  const isDashboardActive = pathname === '/' || pathname === '/analytics' || pathname === '/review-queue';
 
   return (
     <>
@@ -92,30 +93,108 @@ export default function Sidebar() {
           </div>
 
           {/* Navigation Links */}
-          <div className="p-4 space-y-6">
+          <div className="p-4 space-y-4">
             <div>
               <p className="px-3 text-[10px] uppercase font-black tracking-wider text-slate-400 mb-2">
-                Main Menu
+                Workspace Menu
               </p>
+
               <nav className="space-y-1">
-                {navLinks.map(({ href, label, icon: Icon }) => {
-                  const isActive = pathname === href;
-                  return (
-                    <Link
-                      key={href}
-                      href={href}
-                      onClick={() => setMobileOpen(false)}
-                      className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                        isActive
-                          ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/20'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
-                      }`}
-                    >
-                      <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                      <span>{label}</span>
-                    </Link>
-                  );
-                })}
+                {/* 1. Dashboard Accordion with Sub-Pages */}
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setDashboardOpen(!dashboardOpen)}
+                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                      isDashboardActive
+                        ? 'text-indigo-900 bg-indigo-50/80 font-extrabold'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <LayoutDashboard className={`w-4 h-4 ${isDashboardActive ? 'text-indigo-600' : 'text-slate-400'}`} />
+                      <span>Dashboard</span>
+                    </div>
+                    <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${dashboardOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* Nested Sub-Pages */}
+                  {dashboardOpen && (
+                    <div className="pl-6 pr-1 pt-1 pb-1 space-y-1 border-l-2 border-indigo-100 ml-4 mt-1">
+                      <Link
+                        href="/"
+                        onClick={() => setMobileOpen(false)}
+                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition ${
+                          pathname === '/'
+                            ? 'bg-indigo-600 text-white shadow-xs font-bold'
+                            : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/70'
+                        }`}
+                      >
+                        <FolderOpen className="w-3.5 h-3.5" />
+                        <span>All Documents</span>
+                      </Link>
+
+                      <Link
+                        href="/analytics"
+                        onClick={() => setMobileOpen(false)}
+                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition ${
+                          pathname === '/analytics'
+                            ? 'bg-indigo-600 text-white shadow-xs font-bold'
+                            : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/70'
+                        }`}
+                      >
+                        <BarChart3 className="w-3.5 h-3.5" />
+                        <span>Analytics Overview</span>
+                      </Link>
+
+                      <Link
+                        href="/review-queue"
+                        onClick={() => setMobileOpen(false)}
+                        className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition ${
+                          pathname === '/review-queue'
+                            ? 'bg-indigo-600 text-white shadow-xs font-bold'
+                            : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100/70'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
+                          <span>Review Queue</span>
+                        </div>
+                        <span className="text-[9px] uppercase px-1.5 py-0.2 rounded font-black bg-rose-100 text-rose-700">
+                          Alerts
+                        </span>
+                      </Link>
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Batch Ingestion */}
+                <Link
+                  href="/upload"
+                  onClick={() => setMobileOpen(false)}
+                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                    pathname === '/upload'
+                      ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/20'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+                  }`}
+                >
+                  <UploadCloud className={`w-4 h-4 ${pathname === '/upload' ? 'text-white' : 'text-slate-400'}`} />
+                  <span>Batch Ingestion</span>
+                </Link>
+
+                {/* 3. Cross-Verification */}
+                <Link
+                  href="/verification"
+                  onClick={() => setMobileOpen(false)}
+                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                    pathname === '/verification'
+                      ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/20'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+                  }`}
+                >
+                  <GitCompare className={`w-4 h-4 ${pathname === '/verification' ? 'text-white' : 'text-slate-400'}`} />
+                  <span>Cross-Verification</span>
+                </Link>
               </nav>
             </div>
           </div>
