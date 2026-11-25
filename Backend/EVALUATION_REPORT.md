@@ -5,7 +5,7 @@
 - **Document Success Rate**: **100.0%** (3/3 documents processed)
 - **Document Failure Rate**: **0.0%**
 - **Field-Level Extraction Accuracy**: **100.0%** (15/15 key financial fields correctly identified)
-- **Average End-to-End Latency**: **107.0 ms** per document
+- **Average End-to-End Latency**: **178.6 ms** per document
 
 ## 2. Field-Level Accuracy Breakdown
 | Field Name | Extraction Method | Precision | Recall | F1-Score |

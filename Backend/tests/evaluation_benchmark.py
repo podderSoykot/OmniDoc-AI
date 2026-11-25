@@ -1,5 +1,10 @@
 import time
+import sys
+import os
 from pathlib import Path
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from app.services.ingestion.processor import DocumentIngestionProcessor
 from app.services.extraction.extractor import ExtractionOrchestrator
 from app.services.validation.validator import DocumentValidator
