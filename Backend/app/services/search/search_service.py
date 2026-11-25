@@ -47,6 +47,36 @@ class SearchService:
                 if not any(q_lower in s for s in matchable_strings):
                     continue
 
+            # Calculate Grand Total (for invoices and spreadsheets)
+            total_val = None
+            if struct:
+                if struct.get("total") is not None:
+                    try:
+                        total_val = float(struct.get("total"))
+                    except (ValueError, TypeError):
+                        pass
+                elif struct.get("primary_metrics"):
+                    p_metrics = struct.get("primary_metrics", {})
+                    for k in ("Invoice_Register::GrandTotal", "Invoice_Register::Total", "Sheet1::Amount"):
+                        if k in p_metrics:
+                            total_val = float(p_metrics[k])
+                            break
+                    if total_val is None:
+                        for k, v in p_metrics.items():
+                            if any(term in k.lower() for term in ("grandtotal", "totalamount", "total")):
+                                try:
+                                    total_val = float(v)
+                                    break
+                                except (ValueError, TypeError):
+                                    pass
+
+            supplier = struct.get("supplier_name") if struct else None
+            if not supplier and doc.file_type in ("excel", "csv"):
+                if struct and struct.get("total_sheets"):
+                    supplier = f"{struct.get('total_sheets')} Sheets ({struct.get('total_records', 0):,} records)"
+                else:
+                    supplier = "Multi-Sheet Ledger"
+
             results.append(DocumentListItemResponse(
                 id=doc.id,
                 filename=doc.filename,
@@ -55,9 +85,9 @@ class SearchService:
                 page_count=doc.page_count,
                 status=doc.status,
                 review_status=status,
-                total=struct.get("total") if struct else None,
-                currency=struct.get("currency") if struct else None,
-                supplier_name=struct.get("supplier_name") if struct else None,
+                total=total_val,
+                currency=struct.get("currency") if struct else "USD",
+                supplier_name=supplier,
                 created_at=doc.created_at
             ))
 

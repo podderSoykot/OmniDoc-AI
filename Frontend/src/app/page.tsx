@@ -6,7 +6,17 @@ import { api } from '@/lib/api';
 import { DocumentItem } from '@/lib/types';
 import StatCard from '@/components/dashboard/StatCard';
 import DocumentTable from '@/components/dashboard/DocumentTable';
-import { FileText, CheckCircle2, AlertTriangle, UploadCloud, Search, RefreshCw, X, ShieldAlert } from 'lucide-react';
+import { 
+  FileText, 
+  CheckCircle2, 
+  AlertTriangle, 
+  UploadCloud, 
+  Search, 
+  RefreshCw, 
+  X, 
+  ShieldAlert,
+  DollarSign
+} from 'lucide-react';
 
 export default function DashboardPage() {
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
@@ -14,6 +24,7 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [fileTypeFilter, setFileTypeFilter] = useState('');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const fetchDocs = async () => {
     try {
@@ -42,13 +53,32 @@ export default function DashboardPage() {
     setFileTypeFilter('');
   };
 
+  const handleDeleteDocument = async (id: string, filename: string) => {
+    await api.deleteDocument(id);
+    setToastMessage(`Document "${filename}" permanently deleted.`);
+    setTimeout(() => setToastMessage(null), 4000);
+    fetchDocs();
+  };
+
   const totalDocs = documents.length;
   const passedDocs = documents.filter((d) => d.review_status === 'PASSED').length;
   const reviewNeeded = documents.filter((d) => d.review_status === 'NEEDS_MANUAL_REVIEW').length;
   const warningDocs = documents.filter((d) => d.review_status === 'WARNING').length;
 
+  // Cumulative Grand Total across all extracted and ingested documents
+  const cumulativeGrandTotal = documents.reduce((sum, d) => sum + (Number(d.total) || 0), 0);
+  const valuedDocsCount = documents.filter((d) => (Number(d.total) || 0) > 0).length;
+
   return (
     <div className="space-y-7">
+      {/* Toast Alert */}
+      {toastMessage && (
+        <div className="fixed top-20 right-6 z-50 bg-slate-900 text-white text-xs font-bold px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 border border-slate-700 animate-bounce">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2">
         <div>
@@ -85,27 +115,35 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* KPI Cards: 5-column responsive layout */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
           title="Total Documents"
           value={totalDocs}
-          subtitle="Processed in PostgreSQL"
+          subtitle="Stored in PostgreSQL"
           icon={<FileText className="w-5 h-5 text-indigo-600" />}
           color="from-indigo-500/10 to-violet-500/10 text-indigo-600"
+        />
+        <StatCard
+          title="Total Grand Volume"
+          value={`$${cumulativeGrandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          subtitle={`${valuedDocsCount} valued files`}
+          icon={<DollarSign className="w-5 h-5 text-emerald-600" />}
+          color="from-emerald-500/10 to-teal-500/10 text-emerald-600"
+          badge="Cumulative"
         />
         <StatCard
           title="Audited & Passed"
           value={passedDocs}
           subtitle="100% calculation match"
-          icon={<CheckCircle2 className="w-5 h-5 text-emerald-600" />}
-          color="from-emerald-500/10 to-teal-500/10 text-emerald-600"
+          icon={<CheckCircle2 className="w-5 h-5 text-teal-600" />}
+          color="from-teal-500/10 to-emerald-500/10 text-teal-600"
           badge={totalDocs > 0 ? `${Math.round((passedDocs / totalDocs) * 100)}%` : undefined}
         />
         <StatCard
           title="Needs Review"
           value={reviewNeeded}
-          subtitle="Math or missing field flags"
+          subtitle="Math or missing flags"
           icon={<ShieldAlert className="w-5 h-5 text-rose-600" />}
           color="from-rose-500/10 to-red-500/10 text-rose-600"
         />
@@ -179,7 +217,7 @@ export default function DashboardPage() {
           Loading document corpus...
         </div>
       ) : (
-        <DocumentTable documents={documents} />
+        <DocumentTable documents={documents} onDelete={handleDeleteDocument} />
       )}
     </div>
   );

@@ -1,13 +1,44 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { DocumentItem } from '@/lib/types';
-import { FileText, ArrowUpRight, CheckCircle2, AlertTriangle, Clock, Sheet, Image as ImageIcon } from 'lucide-react';
+import { 
+  FileText, 
+  ArrowUpRight, 
+  CheckCircle2, 
+  AlertTriangle, 
+  Clock, 
+  Sheet, 
+  Image as ImageIcon,
+  Trash2,
+  RefreshCw
+} from 'lucide-react';
 
 interface DocumentTableProps {
   documents: DocumentItem[];
+  onDelete?: (id: string, filename: string) => Promise<void>;
 }
 
-export default function DocumentTable({ documents }: DocumentTableProps) {
+export default function DocumentTable({ documents, onDelete }: DocumentTableProps) {
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDelete = async (id: string, filename: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!onDelete) return;
+    const confirmed = window.confirm(`Are you sure you want to delete "${filename}"?\n\nThis will permanently remove the file and all associated extraction records.`);
+    if (!confirmed) return;
+
+    try {
+      setDeletingId(id);
+      await onDelete(id, filename);
+    } catch (err: any) {
+      alert(`Delete failed: ${err.message}`);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const getBadge = (status?: string) => {
     switch (status) {
       case 'PASSED':
@@ -70,11 +101,11 @@ export default function DocumentTable({ documents }: DocumentTableProps) {
             <tr>
               <th className="px-6 py-4">Document Name</th>
               <th className="px-6 py-4">Type & Volume</th>
-              <th className="px-6 py-4">Supplier / Vendor</th>
+              <th className="px-6 py-4">Supplier / Context</th>
               <th className="px-6 py-4">Grand Total</th>
               <th className="px-6 py-4">Validation State</th>
               <th className="px-6 py-4">Ingested At</th>
-              <th className="px-6 py-4 text-right">Review Action</th>
+              <th className="px-6 py-4 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -105,9 +136,13 @@ export default function DocumentTable({ documents }: DocumentTableProps) {
                     <div className="flex items-center gap-3">
                       {getFormatIcon(doc.file_type)}
                       <div>
-                        <p className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate max-w-xs" title={doc.filename}>
+                        <Link 
+                          href={`/documents/${doc.id}`}
+                          className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate max-w-xs block" 
+                          title={doc.filename}
+                        >
                           {doc.filename}
-                        </p>
+                        </Link>
                         <p className="text-[11px] text-slate-400">
                           {(doc.file_size_bytes / 1024).toFixed(1)} KB
                         </p>
@@ -126,7 +161,7 @@ export default function DocumentTable({ documents }: DocumentTableProps) {
 
                   <td className="px-6 py-4 font-medium text-slate-800">
                     {doc.supplier_name ? (
-                      <span className="truncate max-w-[150px] block" title={doc.supplier_name}>
+                      <span className="truncate max-w-[170px] block" title={doc.supplier_name}>
                         {doc.supplier_name}
                       </span>
                     ) : (
@@ -136,7 +171,16 @@ export default function DocumentTable({ documents }: DocumentTableProps) {
 
                   <td className="px-6 py-4 font-black text-slate-900 text-sm">
                     {doc.total !== null && doc.total !== undefined ? (
-                      <span>{doc.currency || '$'} {Number(doc.total).toFixed(2)}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono">
+                          ${Number(doc.total).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                        {doc.file_type === 'excel' && (
+                          <span className="text-[9px] font-bold uppercase tracking-tight text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200/60">
+                            Ledger
+                          </span>
+                        )}
+                      </div>
                     ) : (
                       <span className="text-slate-300 font-normal italic">—</span>
                     )}
@@ -151,13 +195,31 @@ export default function DocumentTable({ documents }: DocumentTableProps) {
                   </td>
 
                   <td className="px-6 py-4 text-right">
-                    <Link
-                      href={`/documents/${doc.id}`}
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-white bg-indigo-50 hover:bg-indigo-600 px-3 py-1.5 rounded-lg transition-all duration-150"
-                    >
-                      <span>Review</span>
-                      <ArrowUpRight className="w-3.5 h-3.5" />
-                    </Link>
+                    <div className="inline-flex items-center gap-1.5">
+                      <Link
+                        href={`/documents/${doc.id}`}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-white bg-indigo-50 hover:bg-indigo-600 px-3 py-1.5 rounded-lg transition-all duration-150"
+                        title="Review and inspect document"
+                      >
+                        <span>Review</span>
+                        <ArrowUpRight className="w-3.5 h-3.5" />
+                      </Link>
+
+                      {onDelete && (
+                        <button
+                          onClick={(e) => handleDelete(doc.id, doc.filename, e)}
+                          disabled={deletingId === doc.id}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition border border-transparent hover:border-rose-100 disabled:opacity-40"
+                          title="Delete document"
+                        >
+                          {deletingId === doc.id ? (
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin text-rose-500" />
+                          ) : (
+                            <Trash2 className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))

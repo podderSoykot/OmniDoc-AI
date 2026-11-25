@@ -63,5 +63,13 @@ export const api = {
     const res = await fetch(`${API_BASE}/jobs/${docId}/retry`, { method: 'POST' });
     if (!res.ok) throw new Error('Retry failed');
     return res.json();
+  },
+
+  async deleteDocument(docId: string): Promise<{ message: string; id: string }> {
+    const res = await fetch(`${API_BASE}/documents/${docId}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) throw new Error('Failed to delete document');
+    return res.json();
   }
 };

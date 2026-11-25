@@ -20,7 +20,8 @@ import {
   GitCompare,
   Layers,
   Sparkles,
-  ShieldCheck
+  ShieldCheck,
+  Trash2
 } from 'lucide-react';
 
 export default function DocumentDetailPage() {
@@ -58,6 +59,21 @@ export default function DocumentDetailPage() {
     } catch (e: any) {
       alert(`Save failed: ${e.message}`);
     } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!doc) return;
+    const confirmed = window.confirm(`Are you sure you want to delete "${doc.filename}"?\n\nThis will permanently purge this document and its extraction records.`);
+    if (!confirmed) return;
+
+    try {
+      setSaving(true);
+      await api.deleteDocument(doc.id);
+      window.location.href = '/';
+    } catch (e: any) {
+      alert(`Delete failed: ${e.message}`);
       setSaving(false);
     }
   };
@@ -185,6 +201,15 @@ export default function DocumentDetailPage() {
           >
             <RefreshCw className="w-3.5 h-3.5 text-slate-400" />
             <span>Refresh</span>
+          </button>
+
+          <button
+            onClick={handleDelete}
+            className="inline-flex items-center gap-1.5 text-xs font-bold bg-white border border-rose-200/80 text-rose-600 hover:bg-rose-50 px-3.5 py-2 rounded-xl shadow-2xs transition"
+            title="Permanently delete document"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+            <span>Delete</span>
           </button>
         </div>
       </div>

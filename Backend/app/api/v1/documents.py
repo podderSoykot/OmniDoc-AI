@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.logging_config import logger
-from app.models.document import Document, DocumentExtraction, ValidationResult, AuditLog
+from app.models.document import Document, DocumentExtraction, ValidationResult, AuditLog, CrossVerification
 from app.models.schemas import (
     DocumentDetailResponse, DocumentListItemResponse,
     ValidationReport, ManualCorrectionRequest, InvoiceExtractionSchema
@@ -75,6 +75,37 @@ def list_documents(
     for d in docs:
         struct = d.extraction.structured_data if d.extraction else {}
         rev_status = d.validation.review_status if d.validation else "PENDING"
+
+        # Calculate Grand Total (for invoices and spreadsheets)
+        total_val = None
+        if struct:
+            if struct.get("total") is not None:
+                try:
+                    total_val = float(struct.get("total"))
+                except (ValueError, TypeError):
+                    pass
+            elif struct.get("primary_metrics"):
+                p_metrics = struct.get("primary_metrics", {})
+                for k in ("Invoice_Register::GrandTotal", "Invoice_Register::Total", "Sheet1::Amount"):
+                    if k in p_metrics:
+                        total_val = float(p_metrics[k])
+                        break
+                if total_val is None:
+                    for k, v in p_metrics.items():
+                        if any(term in k.lower() for term in ("grandtotal", "totalamount", "total")):
+                            try:
+                                total_val = float(v)
+                                break
+                            except (ValueError, TypeError):
+                                pass
+
+        supplier = struct.get("supplier_name") if struct else None
+        if not supplier and d.file_type in ("excel", "csv"):
+            if struct and struct.get("total_sheets"):
+                supplier = f"{struct.get('total_sheets')} Sheets ({struct.get('total_records', 0):,} records)"
+            else:
+                supplier = "Multi-Sheet Ledger"
+
         results.append(DocumentListItemResponse(
             id=d.id,
             filename=d.filename,
@@ -83,9 +114,9 @@ def list_documents(
             page_count=d.page_count,
             status=d.status,
             review_status=rev_status,
-            total=struct.get("total") if struct else None,
-            currency=struct.get("currency") if struct else None,
-            supplier_name=struct.get("supplier_name") if struct else None,
+            total=total_val,
+            currency=struct.get("currency") if struct else "USD",
+            supplier_name=supplier,
             created_at=d.created_at
         ))
     return results
@@ -230,3 +261,29 @@ def update_manual_correction(
 
     db.commit()
     return {"message": "Document corrected and re-validated successfully", "validation": val_report.model_dump()}
+
+@router.delete("/{document_id}")
+def delete_document(document_id: str, db: Session = Depends(get_db)):
+    doc = db.query(Document).filter(Document.id == document_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    # Remove physical file on disk if exists
+    try:
+        fpath = Path(doc.file_path)
+        if fpath.exists():
+            fpath.unlink()
+    except Exception as e:
+        logger.warning(f"Could not remove physical file for {document_id}: {e}")
+
+    # Remove cross-verifications associated with this document
+    db.query(CrossVerification).filter(
+        (CrossVerification.source_doc_id == document_id) |
+        (CrossVerification.target_doc_id == document_id)
+    ).delete(synchronize_session=False)
+
+    # Delete Document (cascades to extraction, validation, audit_logs)
+    db.delete(doc)
+    db.commit()
+
+    return {"message": f"Document '{doc.filename}' deleted successfully", "id": document_id}
