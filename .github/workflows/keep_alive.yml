@@ -7,16 +7,39 @@ on:
   workflow_dispatch:
 
 jobs:
-  ping-backend:
+  ping-services:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping OmniDoc Backend Health Endpoint
+      - name: Ping OmniDoc Backend (Render)
         run: |
-          echo "Pinging OmniDoc Backend to keep it warm..."
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "https://omnidoc-ai-backend-9oin.onrender.com/health")
-          echo "Response HTTP Status: $HTTP_STATUS"
-          if [ "$HTTP_STATUS" -eq 200 ]; then
-            echo "✅ OmniDoc Backend is alive and warm!"
+          echo "Pinging Render Backend to keep it warm..."
+          # Render free instance cold start can take 45-60 seconds; allow up to 90s with retries
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            --connect-timeout 45 \
+            --max-time 90 \
+            --retry 2 \
+            --retry-delay 5 \
+            --retry-connrefused \
+            "https://omnidoc-ai-backend-9oin.onrender.com/health" || echo "TIMEOUT")
+
+          echo "Backend HTTP Status: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "✅ OmniDoc Backend is active and warm!"
           else
-            echo "⚠️ Non-200 status received ($HTTP_STATUS), ping completed."
+            echo "⚠️ Backend responded with status: $HTTP_STATUS (Keep-alive request registered)"
+          fi
+
+      - name: Ping OmniDoc Frontend (Vercel & Neon DB)
+        run: |
+          echo "Pinging Vercel Frontend & Neon DB health..."
+          FE_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            --connect-timeout 20 \
+            --max-time 45 \
+            "https://omnidoc-frontend-mauve.vercel.app/api/health" || echo "TIMEOUT")
+
+          echo "Frontend Health Status: $FE_STATUS"
+          if [ "$FE_STATUS" = "200" ]; then
+            echo "✅ OmniDoc Frontend and Neon DB are healthy and warm!"
+          else
+            echo "⚠️ Frontend responded with status: $FE_STATUS"
           fi
